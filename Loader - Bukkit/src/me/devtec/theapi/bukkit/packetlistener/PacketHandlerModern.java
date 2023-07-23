@@ -72,10 +72,10 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 			case 19:
 				hasTicked = "ac";
 				break;
-			}
 			case 20:
 				hasTicked = "ad";
 				break;
+			}
 			while (!(boolean) Ref.get(BukkitLoader.getNmsProvider().getMinecraftServer(), hasTicked))
 				try {
 					Thread.sleep(20);
