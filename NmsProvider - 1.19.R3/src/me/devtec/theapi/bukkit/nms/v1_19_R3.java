@@ -470,7 +470,8 @@ public class v1_19_R3 implements NmsProvider {
 		if (componentObject == null)
 			return Component.EMPTY_COMPONENT;
 		IChatBaseComponent component = (IChatBaseComponent) componentObject;
-		Component comp = new Component(component.getString());
+		Object result = Ref.invoke(component.b(), "a");
+		Component comp = new Component(result == null ? "" : (String) result);
 		ChatModifier modif = component.a();
 		if (modif.a() != null)
 			comp.setColor(modif.a().b());
