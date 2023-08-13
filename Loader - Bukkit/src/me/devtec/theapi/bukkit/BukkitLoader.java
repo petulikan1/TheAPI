@@ -121,14 +121,16 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	public void onLoad() {
 		release = Config.loadFromInput(getResource("release.yml")).getDouble("release");
 
+		Config config = new Config("plugins/TheAPI/config.yml");
+
 		try {
-			loadProvider();
+			loadProvider(config.getBoolean("nmsProvider-use-directly-jar"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		if (Ref.isNewerThan(12))
-			ScoreboardAPI.SPLIT_MODERN_LINES = new Config("plugins/TheAPI/config.yml").getBoolean("fallback-scoreboard-support");
+			ScoreboardAPI.SPLIT_MODERN_LINES = config.getBoolean("fallback-scoreboard-support");
 
 		broadcastSystemInfo();
 
@@ -279,8 +281,8 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		}
 	}
 
-	private void loadProvider() throws Exception {
-		if (ToolProvider.getSystemJavaCompiler() != null) { // JDK
+	private void loadProvider(boolean canUseJavaFile) throws Exception {
+		if (ToolProvider.getSystemJavaCompiler() != null && canUseJavaFile) { // JDK
 			getAllJarFiles();
 			checkForUpdateAndDownload();
 			if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
@@ -411,7 +413,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		// Command to reload NmsProvider
 		CommandStructure.create(ConsoleCommandSender.class, (sender, perm, isTablist) -> sender.hasPermission(perm), (sender, structure, args) -> {
 			try {
-				loadProvider();
+				loadProvider(new Config("plugins/TheAPI/config.yml").getBoolean("nmsProvider-use-directly-jar"));
 				sender.sendMessage(ColorUtils.colorize("&5TheAPI &8» &7NmsProvider &asuccesfully &7reloaded."));
 			} catch (Exception e) {
 				sender.sendMessage(ColorUtils.colorize("&5TheAPI &8» &7An &cerror &7occurred when reloading NmsProvider."));
