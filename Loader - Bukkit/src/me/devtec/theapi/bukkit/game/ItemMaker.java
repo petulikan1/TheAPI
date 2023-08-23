@@ -1448,9 +1448,7 @@ public class ItemMaker implements Cloneable {
 				patterns.add(new Pattern(DyeColor.valueOf(split[0].toUpperCase()), PatternType.valueOf(split[1].toUpperCase())));
 			}
 			((BannerItemMaker) maker).patterns(patterns);
-		} else
-
-		if (type.name().contains("LEATHER_") && config.getString(path + "leather.color") != null)
+		} else if (type.name().contains("LEATHER_") && config.getString(path + "leather.color") != null)
 			maker = ItemMaker.ofLeatherArmor(type.parseMaterial()).color(Color.fromRGB(Integer.decode(config.getString(path + "leather.color"))));
 		else if (type == XMaterial.PLAYER_HEAD) {
 			maker = ItemMaker.ofHead();
@@ -1485,8 +1483,7 @@ public class ItemMaker implements Cloneable {
 			((PotionItemMaker) maker).potionEffects(effects);
 			if (config.getString(path + "potion.color") != null) // 1.11+
 				((PotionItemMaker) maker).color(Color.fromRGB(Integer.decode(config.getString(path + "potion.color"))));
-		}
-		if (type == XMaterial.ENCHANTED_BOOK)
+		} else if (type == XMaterial.ENCHANTED_BOOK)
 			maker = ItemMaker.ofEnchantedBook();
 		else if (type == XMaterial.WRITTEN_BOOK || type == XMaterial.WRITABLE_BOOK) {
 			maker = ItemMaker.ofBook();
@@ -1513,10 +1510,10 @@ public class ItemMaker implements Cloneable {
 
 		String displayName = config.getString(path + "displayName", config.getString(path + "display-name"));
 		if (displayName != null)
-			maker.displayName(ColorUtils.colorize(displayName));
+			maker.displayName(displayName);
 		List<String> lore = config.getStringList(path + "lore");
 		if (!lore.isEmpty())
-			maker.lore(ColorUtils.colorize(lore));
+			maker.lore(lore);
 		if (config.getBoolean(path + "unbreakable"))
 			maker.unbreakable(true);
 		if (Ref.isNewerThan(7)) // 1.8+
