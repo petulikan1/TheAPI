@@ -3,11 +3,13 @@ package me.devtec.theapi.bukkit;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -79,6 +81,50 @@ public class BukkitLibInit {
 
 		public ImplementableJar(File file) throws IOException {
 			super(file);
+		}
+
+		@Override
+		public Enumeration<JarEntry> entries() {
+			List<Enumeration<JarEntry>> totalEntries = new ArrayList<>();
+			totalEntries.add(super.entries());
+			for (JarFile search : file)
+				totalEntries.add(search.entries());
+
+			return new Enumeration<JarEntry>() {
+
+				int posInList = 0;
+				Enumeration<JarEntry> current = totalEntries.get(posInList);
+
+				@Override
+				public JarEntry nextElement() {
+					if (current.hasMoreElements())
+						return current.nextElement();
+					if (++posInList < totalEntries.size())
+						return (current = totalEntries.get(posInList)).nextElement();
+					return null;
+				}
+
+				@Override
+				public boolean hasMoreElements() {
+					if (current.hasMoreElements())
+						return true;
+					if (posInList + 1 < totalEntries.size())
+						return totalEntries.get(posInList + 1).hasMoreElements();
+					return false;
+				}
+			};
+		}
+
+		@Override
+		public ZipEntry getEntry(String name) {
+			ZipEntry find = super.getEntry(name);
+			if (find == null)
+				for (JarFile search : file) {
+					find = search.getEntry(name);
+					if (find != null)
+						return find;
+				}
+			return null;
 		}
 
 		@Override
@@ -159,6 +205,7 @@ public class BukkitLibInit {
 		API.library = new LibraryLoader() {
 			List<File> loaded = new ArrayList<>();
 			ImplementableJar jar;
+			Field libField;
 			SimpleClassLoader lloader;
 
 			@Override
@@ -175,21 +222,26 @@ public class BukkitLibInit {
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					}
-				} else {
-					if (Ref.isNewerThan(16) || Ref.isNewerThan(15) && Ref.serverType() == ServerType.PAPER)
-						if (lloader == null) {
-							try {
-								lloader = new SimpleClassLoader(new URL[] { file.toURI().toURL() });
-							} catch (MalformedURLException e) {
-								e.printStackTrace();
-							}
-							Ref.set(loader, "library", lloader);
-						} else
-							try {
-								lloader.addURL(file.toURI().toURL());
-							} catch (MalformedURLException e) {
-								e.printStackTrace();
-							}
+				} else if (Ref.isNewerThan(16) || Ref.isNewerThan(15) && Ref.serverType() == ServerType.PAPER) {
+					if (lloader == null) {
+						try {
+							lloader = new SimpleClassLoader(new URL[] { file.toURI().toURL() });
+						} catch (MalformedURLException e) {
+							e.printStackTrace();
+						}
+						if (libField == null) {
+							libField = Ref.field(loader.getClass(), "library");
+							if (libField == null)
+								libField = Ref.field(loader.getClass(), "libraryLoader");
+						}
+						Ref.set(loader, libField, lloader);
+					} else
+						try {
+							lloader.addURL(file.toURI().toURL());
+						} catch (MalformedURLException e) {
+							e.printStackTrace();
+						}
+				} else
 					try { // Just small hack for modern Java.. - Does not working for files inside jar
 						if (jar == null) {
 							jar = new ImplementableJar((File) Ref.get(loader, "file"));
@@ -200,7 +252,6 @@ public class BukkitLibInit {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-				}
 			}
 
 			@Override
