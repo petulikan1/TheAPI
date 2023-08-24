@@ -282,7 +282,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	}
 
 	private void loadProvider(boolean canUseJavaFile) throws Exception {
-		if (ToolProvider.getSystemJavaCompiler() != null && canUseJavaFile) { // JDK
+		if (ToolProvider.getSystemJavaCompiler() != null && !canUseJavaFile) { // JDK
 			getAllJarFiles();
 			checkForUpdateAndDownload();
 			if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {

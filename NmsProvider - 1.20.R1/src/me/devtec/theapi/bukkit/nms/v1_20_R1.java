@@ -1250,7 +1250,8 @@ public class v1_20_R1 implements NmsProvider {
 			action = a.e;
 			break;
 		}
-		ClientboundPlayerInfoUpdatePacket packet = new ClientboundPlayerInfoUpdatePacket(EnumSet.of(action), Collections.emptyList());
+		List<b> list = Collections.emptyList();
+		ClientboundPlayerInfoUpdatePacket packet = new ClientboundPlayerInfoUpdatePacket(EnumSet.of(action), list);
 		packet.c().add(new b(gameProfile.getUUID(), (GameProfile) toGameProfile(gameProfile), true, latency, gameMode == null ? EnumGamemode.a : EnumGamemode.a(gameMode.name().toLowerCase()),
 				(IChatBaseComponent) (playerName == null ? toIChatBaseComponent(new Component(gameProfile.getUsername())) : toIChatBaseComponent(playerName)), null));
 		return packet;
