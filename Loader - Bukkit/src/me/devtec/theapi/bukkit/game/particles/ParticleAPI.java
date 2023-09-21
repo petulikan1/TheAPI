@@ -4,13 +4,14 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.Callable;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import me.devtec.shared.Ref;
+import me.devtec.shared.utility.MathUtils;
+import me.devtec.shared.utility.StringUtils;
 import me.devtec.theapi.bukkit.BukkitLoader;
 import me.devtec.theapi.bukkit.game.Position;
 
@@ -116,54 +117,73 @@ public class ParticleAPI {
 			BukkitLoader.getPacketHandler().send(p, packet);
 	}
 
-	public static List<Object> createCircle(Location location, Color[] colors, int amount, double size, double radius, double density) {
+	public static List<Object> createCircle(Position location, Callable<Particle> particleGetter, int amount, double size, double radius, double density) {
 		if (size == 0)
 			size = 1;
-		Location clone = location.clone();
 		List<Object> frames = new ArrayList<>();
-		int colorCounter = 0;
 		boolean negative = false;
 		for (double t = 0; t <= 2 * Math.PI * radius; t += density) {
-			++colorCounter;
-			if (colorCounter >= colors.length)
-				colorCounter = 0;
 			double cos = Math.cos(t);
 			double sin = Math.sin(t);
 			if (cos < 0 && sin < 0)
 				negative = true;
 			if (negative && cos < 1 && sin > 0)
 				break;
-			double x = radius * cos + clone.getX();
-			double z = clone.getZ() + radius * sin;
-			double y = clone.getY();
-			Color color = colors[colorCounter];
-			frames.add(new Particle(Ref.isNewerThan(12) ? "DUST" : "REDSTONE", new ParticleData.RedstoneOptions(color.getRed(), color.getGreen(), color.getBlue())).createPacket(x, y, z, 1, amount));
+			double x = radius * cos + location.getX();
+			double z = location.getZ() + radius * sin;
+			double y = location.getY();
+			try {
+				frames.add(particleGetter.call().createPacket(x, y, z, 1, amount));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return frames;
 	}
 
-	public static List<Object> createPointingLine(Player player, Location location, Color[] colors, int amount, double size, double length) {
+	public static List<Object> createCircle(Location location, Callable<Particle> particleGetter, int amount, double size, double radius, double density) {
+		if (size == 0)
+			size = 1;
+		List<Object> frames = new ArrayList<>();
+		boolean negative = false;
+		for (double t = 0; t <= 2 * Math.PI * radius; t += density) {
+			double cos = Math.cos(t);
+			double sin = Math.sin(t);
+			if (cos < 0 && sin < 0)
+				negative = true;
+			if (negative && cos < 1 && sin > 0)
+				break;
+			double x = radius * cos + location.getX();
+			double z = location.getZ() + radius * sin;
+			double y = location.getY();
+			try {
+				frames.add(particleGetter.call().createPacket(x, y, z, 1, amount));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return frames;
+	}
+
+	public static List<Object> createPointingLine(Player player, Location location, Callable<Particle> particleGetter, int amount, double size, double length) {
 		if (size == 0)
 			size = 1;
 		Vector vector = player.getEyeLocation().getDirection();
 		List<Object> frames = new ArrayList<>();
 		double multiply = 1;
-		int colorCounter = 0;
 		for (int i = 0; i < length * 10; i++) {
-			++colorCounter;
-			if (colorCounter >= colors.length)
-				colorCounter = 0;
 			multiply = multiply + 0.1;
-			Vector working = vector.clone().multiply(multiply);
-			Location export = location.clone().add(working);
-			Color color = colors[colorCounter];
-			frames.add(new Particle(Ref.isNewerThan(12) ? "DUST" : "REDSTONE", new ParticleData.RedstoneOptions(color.getRed(), color.getGreen(), color.getBlue())).createPacket(export.getX(),
-					export.getY(), export.getZ(), 1, amount));
+			try {
+				frames.add(particleGetter.call().createPacket(location.getX() + vector.getX() * multiply, location.getY() + vector.getY() * multiply, location.getZ() + vector.getZ() * multiply, 1,
+						amount));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return frames;
 	}
 
-	public static List<Object> createRippleLinePointingAt(Player player, Location destination, Color[] colors, int amount, double size) {
+	public static List<Object> createRippleLinePointingAt(Player player, Location destination, Callable<Particle> particleGetter, int amount, double size) {
 		Location start = player.getEyeLocation();
 		Vector eye = start.toVector();
 		start = start.add(0, -0.3, 0);
@@ -173,18 +193,14 @@ public class ParticleAPI {
 		int difference = (difference_x + difference_y + difference_z) * 10;
 		Vector direction = destination.add(0, 0.5, 0).toVector().subtract(eye).divide(new Vector(difference, difference, difference));
 		int half = difference / 2;
-		double random_angle = ThreadLocalRandom.current().nextDouble(0, 0.03);
+		double random_angle = MathUtils.randomDouble(0.03);
 		double[] angles = quadratic(random_angle, difference / 2);
 		int angleCounter = 0;
-		boolean minusX = ThreadLocalRandom.current().nextBoolean();
-		boolean minusY = ThreadLocalRandom.current().nextBoolean();
-		boolean minusZ = ThreadLocalRandom.current().nextBoolean();
-		int colorCounter = 0;
+		boolean minusX = StringUtils.random.nextBoolean();
+		boolean minusY = StringUtils.random.nextBoolean();
+		boolean minusZ = StringUtils.random.nextBoolean();
 		List<Object> animation = new ArrayList<>();
 		for (int i = 0; i < difference; i++) {
-			if (colorCounter == colors.length)
-				colorCounter = 0;
-			Color color = colors[colorCounter];
 			if (angleCounter == angles.length)
 				angleCounter = angles.length - 1;
 			if (angleCounter < 0)
@@ -192,13 +208,13 @@ public class ParticleAPI {
 			double finalAngleX = minusX ? -angles[angleCounter] : angles[angleCounter];
 			double finalAngleY = minusY ? -angles[angleCounter] : angles[angleCounter];
 			double finalAngleZ = minusZ ? -angles[angleCounter] : angles[angleCounter];
-			Location copy = start.clone();
 			start = start.add(direction);
-			Vector util = copy.add(direction.clone()).toVector().rotateAroundX(finalAngleX).rotateAroundY(finalAngleY).rotateAroundZ(finalAngleZ);
-			Location export = util.toLocation(player.getWorld());
-			animation.add(new Particle(Ref.isNewerThan(12) ? "DUST" : "REDSTONE", new ParticleData.RedstoneOptions(color.getRed(), color.getGreen(), color.getBlue())).createPacket(export.getX(),
-					export.getY(), export.getZ(), 1, amount));
-			++colorCounter;
+			Vector util = start.toVector().add(direction).rotateAroundX(finalAngleX).rotateAroundY(finalAngleY).rotateAroundZ(finalAngleZ);
+			try {
+				animation.add(particleGetter.call().createPacket(util.getX(), util.getY(), util.getZ(), 1, amount));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			if (i < half)
 				++angleCounter;
 			else
@@ -207,32 +223,29 @@ public class ParticleAPI {
 		return animation;
 	}
 
-	public static List<Object> createComingSpiral(Location location, Color[] colors, int amount, double size, double radius, double change) {
-		if (size == 0)
-			size = 1;
-		int colorCounter = 0;
+	public static List<Object> createComingSpiral(Location location, Callable<Particle> particleGetter, int amount, double size, double radius, double change) {
 		List<Object> frames = new ArrayList<>();
 		double betterRadius = radius + 0.0;
 		for (double t = 0; t <= 2 * Math.PI * radius; t += 0.05) {
-			++colorCounter;
-			if (colorCounter >= colors.length)
-				colorCounter = 0;
 			if (betterRadius < 0.0)
 				break;
 			double x = betterRadius * Math.cos(t) + location.getX();
 			double z = location.getZ() + betterRadius * Math.sin(t);
 			double y = location.getY();
-			Color color = colors[colorCounter];
-			frames.add(new Particle(Ref.isNewerThan(12) ? "DUST" : "REDSTONE", new ParticleData.RedstoneOptions(color.getRed(), color.getGreen(), color.getBlue())).createPacket(x, y, z, 1, amount));
+			try {
+				frames.add(particleGetter.call().createPacket(x, y, z, 1, amount));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			betterRadius = betterRadius - change;
 		}
 		return frames;
 	}
 
-	public static List<List<Object>> createWave(Location location, Color[] colors, int amount, double size, double radius, double density) {
+	public static List<List<Object>> createWave(Location location, Callable<Particle> particleGetter, int amount, double size, double radius, double density) {
 		List<List<Object>> result = new ArrayList<>();
 		for (double i = 0; i < radius; i += 0.5)
-			result.add(createCircle(location, colors, amount, size, i, density));
+			result.add(createCircle(location, particleGetter, amount, size, i, density));
 		return result;
 	}
 
