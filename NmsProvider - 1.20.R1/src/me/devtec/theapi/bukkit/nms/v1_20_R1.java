@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -1231,6 +1232,18 @@ public class v1_20_R1 implements NmsProvider {
 		return new ClientboundPlayerInfoUpdatePacket(action, (EntityPlayer) getPlayer(player));
 	}
 
+	static boolean MODERN_CLIENTBOUND_PACKET = Ref.constructor(ClientboundPlayerInfoUpdatePacket.class, EnumSet.class, List.class) != null ? false : true;
+	static Field setField, listField;
+	static Constructor<?> clientboundConstructor;
+
+	static {
+		if (MODERN_CLIENTBOUND_PACKET) {
+			setField = Ref.field(ClientboundPlayerInfoUpdatePacket.class, "a");
+			listField = Ref.field(ClientboundPlayerInfoUpdatePacket.class, "b");
+		} else
+			clientboundConstructor = Ref.constructor(ClientboundPlayerInfoUpdatePacket.class, EnumSet.class, List.class);
+	}
+
 	@Override
 	public Object packetPlayerInfo(PlayerInfoType type, GameProfileHandler gameProfile, int latency, GameMode gameMode, Component playerName) {
 		a action = null;
@@ -1250,8 +1263,15 @@ public class v1_20_R1 implements NmsProvider {
 			action = a.e;
 			break;
 		}
+		EnumSet<a> set = EnumSet.of(action);
 		List<b> list = Collections.emptyList();
-		ClientboundPlayerInfoUpdatePacket packet = new ClientboundPlayerInfoUpdatePacket(EnumSet.of(action), list);
+		ClientboundPlayerInfoUpdatePacket packet;
+		if (MODERN_CLIENTBOUND_PACKET) {
+			packet = (ClientboundPlayerInfoUpdatePacket) Ref.newUnsafeInstance(ClientboundPlayerInfoUpdatePacket.class);
+			Ref.set(packet, setField, set);
+			Ref.set(packet, listField, list);
+		} else
+			packet = (ClientboundPlayerInfoUpdatePacket) Ref.newInstance(clientboundConstructor, set, list);
 		packet.c().add(new b(gameProfile.getUUID(), (GameProfile) toGameProfile(gameProfile), true, latency, gameMode == null ? EnumGamemode.a : EnumGamemode.a(gameMode.name().toLowerCase()),
 				(IChatBaseComponent) (playerName == null ? toIChatBaseComponent(new Component(gameProfile.getUsername())) : toIChatBaseComponent(playerName)), null));
 		return packet;
