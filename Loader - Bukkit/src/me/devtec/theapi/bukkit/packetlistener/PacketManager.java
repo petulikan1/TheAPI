@@ -1,29 +1,41 @@
 package me.devtec.theapi.bukkit.packetlistener;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class PacketManager {
-	private static final Priority[] list = Arrays.asList(Priority.LOWEST, Priority.LOW, Priority.NORMAL, Priority.HIGH, Priority.HIGHEST, Priority.MONITOR).toArray(new Priority[5]);
+	private static final Priority[] PRIORITIES = { Priority.LOWEST, Priority.LOW, Priority.NORMAL, Priority.HIGH, Priority.HIGHEST, Priority.MONITOR };
 
-	private static final Map<Priority, List<PacketListener>> listeners = new ConcurrentHashMap<>();
+	private static final Map<Priority, List<PacketListener>> listeners = new HashMap<>();
 	static {
-		for (Priority l : PacketManager.list)
-			PacketManager.listeners.put(l, new ArrayList<>());
+		for (Priority priority : PRIORITIES)
+			PacketManager.listeners.put(priority, new ArrayList<>());
 	}
 
-	public static Object call(String player, Object packet, Object channel, PacketType type) {
+	public static Object call(String player, final Object packet, final Object channel, PacketType type) {
 		if (packet == null || channel == null)
 			return packet;
-		for (Priority o : PacketManager.list)
-			for (PacketListener w : PacketManager.listeners.get(o)) {
-				if ((packet == null) || (type == PacketType.PLAY_OUT ? w.playOut(player, packet, channel) : w.playIn(player, packet, channel)))
-					return null;
-			}
-		return packet;
+
+		PacketContainer pContainer = new PacketContainer(packet);
+		ChannelContainer cContainer = new ChannelContainer(channel);
+
+		if (type == PacketType.PLAY_OUT)
+			for (Priority o : PRIORITIES)
+				for (PacketListener w : PacketManager.listeners.get(o)) {
+					if (!pContainer.isCancelled() && w.playOut(player, packet, channel)) // TODO Planned to remove in 12.0
+						pContainer.setCancelled(true);
+					w.playOut(player, pContainer, cContainer);
+				}
+		else
+			for (Priority o : PRIORITIES)
+				for (PacketListener w : PacketManager.listeners.get(o)) {
+					if (!pContainer.isCancelled() && w.playIn(player, packet, channel)) // TODO Planned to remove in 12.0
+						pContainer.setCancelled(true);
+					w.playIn(player, pContainer, cContainer);
+				}
+		return pContainer.isCancelled() ? null : pContainer.getPacket();
 	}
 
 	public static void register(PacketListener listener) {
@@ -44,18 +56,18 @@ public class PacketManager {
 	}
 
 	public static boolean isRegistered(PacketListener listener) {
-		for (Priority p : PacketManager.list)
-			if (PacketManager.listeners.get(p).contains(listener))
+		for (Priority priority : PRIORITIES)
+			if (PacketManager.listeners.get(priority).contains(listener))
 				return true;
 		return false;
 	}
 
-	protected static void notify(PacketListener listener, Priority old, Priority neww) {
-		if (listener == null || neww == null)
+	protected static void notify(PacketListener listener, Priority oldPriority, Priority newPriority) {
+		if (listener == null || newPriority == null)
 			return;
-		if (old != null)
-			PacketManager.listeners.get(old).remove(listener);
-		PacketManager.listeners.get(neww).add(listener);
+		if (oldPriority != null)
+			PacketManager.listeners.get(oldPriority).remove(listener);
+		PacketManager.listeners.get(newPriority).add(listener);
 	}
 
 	public static void unregisterAll() {
