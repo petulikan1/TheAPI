@@ -282,16 +282,31 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	}
 
 	private void loadProvider(boolean canUseJavaFile) throws Exception {
-		if (ToolProvider.getSystemJavaCompiler() != null && !canUseJavaFile) { // JDK
-			getAllJarFiles();
-			checkForUpdateAndDownload();
-			if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
-				nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms." + Ref.serverVersion(),
-						new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
-				if (nmsProvider != null)
-					nmsProvider.loadParticles();
+		if (ToolProvider.getSystemJavaCompiler() != null && !canUseJavaFile)
+			try {
+				getAllJarFiles();
+				checkForUpdateAndDownload();
+				if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
+					nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms." + Ref.serverVersion(),
+							new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
+					if (nmsProvider != null)
+						nmsProvider.loadParticles();
+				}
+			} catch (Exception err) {
+				err.printStackTrace();
+				Bukkit.getConsoleSender().sendMessage(ColorUtils.colorize("&7> &4Error! Failed to load NmsProvider from .java file, loading from .jar."));
+				checkForUpdateAndDownloadCompiled();
+				if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists())
+					try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar" + "!/") }, getClassLoader())) {
+						Class<?> c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
+						nmsProvider = (NmsProvider) c.newInstance();
+						if (nmsProvider != null)
+							nmsProvider.loadParticles();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 			}
-		} else { // JRE
+		else { // JRE
 			checkForUpdateAndDownloadCompiled();
 			if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists())
 				try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar" + "!/") }, getClassLoader())) {
