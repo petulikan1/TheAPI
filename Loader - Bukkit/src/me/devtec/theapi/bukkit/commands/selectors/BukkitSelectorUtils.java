@@ -63,6 +63,10 @@ public class BukkitSelectorUtils implements SelectorUtils<CommandSender> {
 			for (World world : Bukkit.getWorlds())
 				list.add(world.getName());
 			break;
+		case POSITION:
+			list.add("~");
+			list.add("{number}");
+			break;
 		default:
 			break;
 		}
@@ -121,6 +125,8 @@ public class BukkitSelectorUtils implements SelectorUtils<CommandSender> {
 			return ParseUtils.isNumber(value);
 		case WORLD:
 			return Bukkit.getWorld(value) != null;
+		case POSITION:
+			return ParseUtils.isNumber(value) || value.indexOf('~') != -1 || value.indexOf('+') != -1 || value.indexOf('-') != -1;
 		default:
 			break;
 		}
