@@ -20,6 +20,8 @@ import me.devtec.shared.dataholder.Config;
 import me.devtec.shared.json.Json;
 import me.devtec.shared.json.modern.ModernJsonReader;
 import me.devtec.shared.json.modern.ModernJsonWriter;
+import me.devtec.shared.mcmetrics.GatheringInfoManager;
+import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
@@ -97,6 +99,40 @@ public class BungeeLoader extends Plugin implements Listener {
 
 	public static void initTheAPI() {
 		Ref.init(ServerType.BUNGEECORD, ProxyServer.getInstance().getVersion()); // Server version
+
+		Metrics.gatheringInfoManager = new GatheringInfoManager() {
+
+			@Override
+			public String getServerVersionVendor() {
+				return null;
+			}
+
+			@Override
+			public int getManagedServers() {
+				return ProxyServer.getInstance().getServers().size();
+			}
+
+			@Override
+			public String getServerVersion() {
+				return ProxyServer.getInstance().getVersion();
+			}
+
+			@Override
+			public String getServerName() {
+				return ProxyServer.getInstance().getName();
+			}
+
+			@Override
+			public int getPlayers() {
+				return ProxyServer.getInstance().getOnlineCount();
+			}
+
+			@Override
+			public int getOnlineMode() {
+				return ProxyServer.getInstance().getConfig().isOnlineMode() ? 1 : 0;
+			}
+		};
+
 		ComponentAPI.registerTransformer("BUNGEECORD", new BungeeComponentAPI<>());
 		if (Ref.getClass("net.kyori.adventure.text.Component") != null)
 			ComponentAPI.registerTransformer("ADVENTURE", (ComponentTransformer<?>) Ref.newInstanceByClass(Ref.getClass("me.devtec.shared.components.AdventureComponentAPI")));

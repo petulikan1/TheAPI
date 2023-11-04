@@ -33,6 +33,8 @@ import me.devtec.shared.dataholder.Config;
 import me.devtec.shared.json.Json;
 import me.devtec.shared.json.modern.ModernJsonReader;
 import me.devtec.shared.json.modern.ModernJsonWriter;
+import me.devtec.shared.mcmetrics.GatheringInfoManager;
+import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
@@ -107,6 +109,40 @@ public class VelocityLoader {
 
 	public static void initTheAPI() {
 		Ref.init(ServerType.VELOCITY, VelocityServer.class.getPackage().getImplementationVersion()); // Server version
+
+		Metrics.gatheringInfoManager = new GatheringInfoManager() {
+
+			@Override
+			public String getServerVersionVendor() {
+				return getServer().getVersion().getVendor();
+			}
+
+			@Override
+			public int getManagedServers() {
+				return getServer().getAllServers().size();
+			}
+
+			@Override
+			public String getServerVersion() {
+				return getServer().getVersion().getVersion();
+			}
+
+			@Override
+			public String getServerName() {
+				return getServer().getVersion().getName();
+			}
+
+			@Override
+			public int getPlayers() {
+				return getServer().getPlayerCount();
+			}
+
+			@Override
+			public int getOnlineMode() {
+				return getServer().getConfiguration().isOnlineMode() ? 1 : 0;
+			}
+		};
+
 		ComponentAPI.registerTransformer("ADVENTURE", new AdventureComponentAPI<>());
 		Config config = new Config("plugins/TheAPI/config.yml");
 		if (!config.getString("default-json-handler", "Guava").equalsIgnoreCase("TheAPI"))

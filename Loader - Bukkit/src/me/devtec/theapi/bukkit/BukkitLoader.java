@@ -39,6 +39,7 @@ import me.devtec.shared.dataholder.Config;
 import me.devtec.shared.dataholder.DataType;
 import me.devtec.shared.dataholder.StringContainer;
 import me.devtec.shared.json.Json;
+import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.placeholders.PlaceholderAPI;
 import me.devtec.shared.placeholders.PlaceholderExpansion;
 import me.devtec.shared.utility.ColorUtils;
@@ -256,7 +257,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			}
 		}.register();
 
-		new Metrics(this, 10581);
+		new Metrics(getDescription().getVersion(), 20203);
 	}
 
 	private void broadcastSystemInfo() {

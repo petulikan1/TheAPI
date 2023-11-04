@@ -47,6 +47,8 @@ import me.devtec.shared.json.Json.DataReader;
 import me.devtec.shared.json.Json.DataWriter;
 import me.devtec.shared.json.modern.ModernJsonReader;
 import me.devtec.shared.json.modern.ModernJsonWriter;
+import me.devtec.shared.mcmetrics.GatheringInfoManager;
+import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
@@ -175,8 +177,40 @@ public class BukkitLibInit {
 
 	public static void initTheAPI() {
 		Ref.init(Ref.getClass("net.md_5.bungee.api.ChatColor") != null ? Ref.getClass("net.kyori.adventure.Adventure") != null ? ServerType.PAPER : ServerType.SPIGOT : ServerType.BUKKIT,
-				Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3]); // Server
-																						// version
+				Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3]);
+
+		Metrics.gatheringInfoManager = new GatheringInfoManager() {
+
+			@Override
+			public String getServerVersionVendor() {
+				return null;
+			}
+
+			@Override
+			public int getManagedServers() {
+				return 0;
+			}
+
+			@Override
+			public String getServerVersion() {
+				return Bukkit.getVersion();
+			}
+
+			@Override
+			public String getServerName() {
+				return Bukkit.getName();
+			}
+
+			@Override
+			public int getPlayers() {
+				return BukkitLoader.getOnlinePlayers().size();
+			}
+
+			@Override
+			public int getOnlineMode() {
+				return Bukkit.getOnlineMode() ? 1 : 0;
+			}
+		};
 
 		// Init json parsers
 		registerWriterAndReaders();
