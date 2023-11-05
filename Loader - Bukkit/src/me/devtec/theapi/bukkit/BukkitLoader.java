@@ -80,6 +80,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	private static Class<?> click;
 	private static Class<?> itemname;
 	private static double release;
+	private Metrics metrics;
 
 	// public plugin fields
 	public Map<UUID, HolderGUI> gui = new ConcurrentHashMap<>();
@@ -257,7 +258,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			}
 		}.register();
 
-		new Metrics(getDescription().getVersion(), 20203);
+		metrics = new Metrics(getDescription().getVersion(), 20203);
 	}
 
 	private void broadcastSystemInfo() {
@@ -470,6 +471,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
+		metrics.shutdown();
 		API.setEnabled(false);
 		if (handler != null) {
 			BukkitLoader.handler.close();
