@@ -7,9 +7,13 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import javax.tools.ToolProvider;
+
+import org.slf4j.Logger;
 
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
@@ -52,15 +56,17 @@ public class VelocityLoader {
 
 	private final ProxyServer server;
 	private static VelocityLoader plugin;
+	private final Logger logger;
 
 	public static ProxyServer getServer() {
 		return VelocityLoader.plugin.server;
 	}
 
 	@Inject
-	public VelocityLoader(ProxyServer server) {
+	public VelocityLoader(ProxyServer server, Logger logger) {
 		VelocityLoader.plugin = this;
 		this.server = server;
+		this.logger = logger;
 		broadcastSystemInfo();
 	}
 
@@ -111,6 +117,16 @@ public class VelocityLoader {
 		Ref.init(ServerType.VELOCITY, VelocityServer.class.getPackage().getImplementationVersion()); // Server version
 
 		Metrics.gatheringInfoManager = new GatheringInfoManager() {
+
+			@Override
+			public Consumer<String> getInfoLogger() {
+				return plugin.logger::info;
+			}
+
+			@Override
+			public BiConsumer<String, Throwable> getErrorLogger() {
+				return plugin.logger::warn;
+			}
 
 			@Override
 			public String getServerVersionVendor() {

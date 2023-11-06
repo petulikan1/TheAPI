@@ -18,8 +18,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 
@@ -32,6 +35,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import me.devtec.shared.API;
 import me.devtec.shared.Ref;
@@ -209,6 +213,16 @@ public class BukkitLibInit {
 			@Override
 			public int getOnlineMode() {
 				return Bukkit.getOnlineMode() ? 1 : 0;
+			}
+
+			@Override
+			public Consumer<String> getInfoLogger() {
+				return msg -> JavaPlugin.getPlugin(BukkitLoader.class).getLogger().log(Level.INFO, msg);
+			}
+
+			@Override
+			public BiConsumer<String, Throwable> getErrorLogger() {
+				return (msg, error) -> JavaPlugin.getPlugin(BukkitLoader.class).getLogger().log(Level.WARNING, msg, error);
 			}
 		};
 

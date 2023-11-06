@@ -6,6 +6,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import javax.tools.ToolProvider;
@@ -101,6 +104,16 @@ public class BungeeLoader extends Plugin implements Listener {
 		Ref.init(ServerType.BUNGEECORD, ProxyServer.getInstance().getVersion()); // Server version
 
 		Metrics.gatheringInfoManager = new GatheringInfoManager() {
+
+			@Override
+			public Consumer<String> getInfoLogger() {
+				return msg -> plugin.getLogger().log(Level.INFO, msg);
+			}
+
+			@Override
+			public BiConsumer<String, Throwable> getErrorLogger() {
+				return (msg, error) -> plugin.getLogger().log(Level.WARNING, msg, error);
+			}
 
 			@Override
 			public String getServerVersionVendor() {
