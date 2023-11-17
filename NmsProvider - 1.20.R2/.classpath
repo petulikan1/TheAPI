@@ -9,7 +9,7 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/Loader - Bukkit"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Shared"/>
 	<classpathentry kind="lib" path="D:/jars/mc/1.20_R2/adventure-api-4.14.0.jar"/>
-	<classpathentry kind="lib" path="D:/jars/mc/1.20_R2/authlib-4.0.43.jar"/>
+	<classpathentry kind="lib" path="D:/jars/mc/1.20_R2/authlib-5.0.47.jar"/>
 	<classpathentry kind="lib" path="D:/jars/mc/1.20_R2/brigadier-1.1.8.jar"/>
 	<classpathentry kind="lib" path="D:/jars/mc/1.20_R2/bungeecord-chat-1.16-R0.4.jar"/>
 	<classpathentry kind="lib" path="D:/jars/mc/1.20_R2/datafixerupper-6.0.8.jar"/>

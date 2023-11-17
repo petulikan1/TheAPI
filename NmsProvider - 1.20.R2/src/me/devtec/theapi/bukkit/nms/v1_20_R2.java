@@ -1319,7 +1319,7 @@ public class v1_20_R2 implements NmsProvider {
 		GameProfile profile = (GameProfile) gameProfile;
 		GameProfileHandler handler = GameProfileHandler.of(profile.getName(), profile.getId());
 		for (Entry<String, Property> entry : profile.getProperties().entries())
-			handler.getProperties().put(entry.getKey(), PropertyHandler.of(entry.getValue().getName(), entry.getValue().getValue(), entry.getValue().getSignature()));
+			handler.getProperties().put(entry.getKey(), PropertyHandler.of(entry.getValue().name(), entry.getValue().value(), entry.getValue().signature()));
 		return handler;
 	}
 
