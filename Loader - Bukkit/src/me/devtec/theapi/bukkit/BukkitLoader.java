@@ -146,13 +146,17 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 					if (Ref.isNewerThan(7))
 						handler = new PacketHandlerModern(true);
 					else
-						handler = (PacketHandler<?>) Ref.newInstanceByClass("me.devtec.theapi.bukkit.packetlistener.PacketHandlerLegacy", true);
+						handler = (PacketHandler<?>) Ref.newInstance(Ref.constructor(Ref.getClass("me.devtec.theapi.bukkit.packetlistener.PacketHandlerLegacy"), boolean.class), true);
 				}).start();
 
 			else if (Ref.isNewerThan(7))
 				handler = new PacketHandlerModern(false);
 			else
-				handler = (PacketHandler<?>) Ref.newInstanceByClass("me.devtec.theapi.bukkit.packetlistener.PacketHandlerLegacy", false);
+				handler = (PacketHandler<?>) Ref.newInstance(Ref.constructor(Ref.getClass("me.devtec.theapi.bukkit.packetlistener.PacketHandlerLegacy"), boolean.class), false);
+		if (handler == null) {
+			Bukkit.getConsoleSender().sendMessage(ColorUtils.colorize("&7>"));
+			Bukkit.getConsoleSender().sendMessage(ColorUtils.colorize("&7> &4Error! &eFailed to load PacketHandler."));
+		}
 
 		resource = Ref.nms("network.protocol.game", "PacketPlayInResourcePackStatus");
 		close = Ref.nms("network.protocol.game", "PacketPlayInCloseWindow");
