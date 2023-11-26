@@ -26,8 +26,8 @@ public class TeamUtils {
 			try {
 				Object o = TeamUtils.unsafe.allocateInstance(TeamUtils.sbTeam);
 				Ref.set(o, "a", BukkitLoader.getNmsProvider().chatBase("{\"text\":\"" + holderName + "\"}"));
-				Ref.set(o, "b", BukkitLoader.getNmsProvider().toIChatBaseComponent(prefix));
-				Ref.set(o, "c", BukkitLoader.getNmsProvider().toIChatBaseComponent(prefix));
+				Ref.set(o, "b", BukkitLoader.getNmsProvider().toIChatBaseComponent(prefix == null ? Component.EMPTY_COMPONENT : prefix));
+				Ref.set(o, "c", BukkitLoader.getNmsProvider().toIChatBaseComponent(suffix == null ? Component.EMPTY_COMPONENT : suffix));
 				Ref.set(o, "d", always);
 				Ref.set(o, "e", always);
 				Ref.set(o, "f", color);
@@ -39,8 +39,8 @@ public class TeamUtils {
 		} else {
 			Ref.set(packet, "a", teamName);
 			Ref.set(packet, "b", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().chatBase("{\"text\":\"\"}") : "");
-			Ref.set(packet, "c", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().toIChatBaseComponent(prefix) : prefix == null ? "" : prefix);
-			Ref.set(packet, "d", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().toIChatBaseComponent(suffix) : suffix == null ? "" : suffix);
+			Ref.set(packet, "c", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().toIChatBaseComponent(prefix == null ? Component.EMPTY_COMPONENT : prefix) : prefix == null ? "" : prefix);
+			Ref.set(packet, "d", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().toIChatBaseComponent(suffix == null ? Component.EMPTY_COMPONENT : suffix) : suffix == null ? "" : suffix);
 			if (Ref.isNewerThan(7)) {
 				Ref.set(packet, "e", always);
 				Ref.set(packet, "f", Ref.isNewerThan(8) ? always : -1);
