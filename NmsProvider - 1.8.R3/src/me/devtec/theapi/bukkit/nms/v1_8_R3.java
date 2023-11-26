@@ -1107,24 +1107,25 @@ public class v1_8_R3 implements NmsProvider {
 			result = processClick(gui, gui.getNotInterableSlots(player), c, slot, mouseClick, type, nPlayer);
 			break;
 		}
+		postToMainThread(() -> {
+			if (net.minecraft.server.v1_8_R3.ItemStack.matches(packet.e(), result)) {
+				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), true));
+				nPlayer.g = true;
+				c.b();
+				nPlayer.broadcastCarriedItem();
+				nPlayer.g = false;
+			} else {
+				((IntHashMap<Short>) Ref.get(nPlayer.playerConnection, "n")).a(c.windowId, packet.d());
+				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), false));
+				c.a(nPlayer, false);
+				List<net.minecraft.server.v1_8_R3.ItemStack> arraylist1 = new ArrayList<>();
 
-		if (net.minecraft.server.v1_8_R3.ItemStack.matches(packet.e(), result)) {
-			nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), true));
-			nPlayer.g = true;
-			c.b();
-			nPlayer.broadcastCarriedItem();
-			nPlayer.g = false;
-		} else {
-			((IntHashMap<Short>) Ref.get(nPlayer.playerConnection, "n")).a(c.windowId, packet.d());
-			nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), false));
-			c.a(nPlayer, false);
-			List<net.minecraft.server.v1_8_R3.ItemStack> arraylist1 = new ArrayList<>();
+				for (int j = 0; j < c.c.size(); ++j)
+					arraylist1.add(c.c.get(j).getItem());
 
-			for (int j = 0; j < c.c.size(); ++j)
-				arraylist1.add(c.c.get(j).getItem());
-
-			nPlayer.a(c, arraylist1);
-		}
+				nPlayer.a(c, arraylist1);
+			}
+		});
 	}
 
 	@SuppressWarnings("unchecked")

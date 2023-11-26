@@ -1036,15 +1036,17 @@ public class v1_17_R1 implements NmsProvider {
 			processClick(gui, gui.getNotInterableSlots(player), c, slot, mouseClick, type, nPlayer);
 			break;
 		}
-		if (type != InventoryClickType.f && (c.getType().equals(Containers.h) || c.getType().equals(Containers.u)))
-			c.updateInventory();
-		packet.f().forEach((key, value) -> c.b(key, value));
-		c.a(packet.e());
-		c.i();
-		if (packet.h() != c.getStateId())
-			c.e();
-		else
-			c.d();
+		postToMainThread(() -> {
+			if (type != InventoryClickType.f && (c.getType().equals(Containers.h) || c.getType().equals(Containers.u)))
+				c.updateInventory();
+			packet.f().forEach((key, value) -> c.b(key, value));
+			c.a(packet.e());
+			c.i();
+			if (packet.h() != c.getStateId())
+				c.e();
+			else
+				c.d();
+		});
 	}
 
 	private Method addAmount = Ref.method(Slot.class, "b", int.class);

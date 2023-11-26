@@ -1034,23 +1034,25 @@ public class v1_16_R3 implements NmsProvider {
 			result = processClick(gui, gui.getNotInterableSlots(player), c, slot, mouseClick, type, nPlayer);
 			break;
 		}
-		if (net.minecraft.server.v1_16_R3.ItemStack.matches(packet.f(), result)) {
-			nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.b(), packet.e(), true));
-			nPlayer.e = true;
-			c.c();
-			nPlayer.broadcastCarriedItem();
-			nPlayer.e = false;
-		} else {
-			((Map<Integer, Short>) Ref.get(nPlayer.playerConnection, "k")).put(c.windowId, packet.e());
-			nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.b(), packet.e(), false));
-			c.a(nPlayer, false);
-			NonNullList<net.minecraft.server.v1_16_R3.ItemStack> nonnulllist1 = NonNullList.a();
-			for (int j = 0; j < c.slots.size(); ++j) {
-				net.minecraft.server.v1_16_R3.ItemStack cursor = c.slots.get(j).getItem();
-				nonnulllist1.add(cursor.isEmpty() ? net.minecraft.server.v1_16_R3.ItemStack.b : cursor);
+		postToMainThread(() -> {
+			if (net.minecraft.server.v1_16_R3.ItemStack.matches(packet.f(), result)) {
+				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.b(), packet.e(), true));
+				nPlayer.e = true;
+				c.c();
+				nPlayer.broadcastCarriedItem();
+				nPlayer.e = false;
+			} else {
+				((Map<Integer, Short>) Ref.get(nPlayer.playerConnection, "k")).put(c.windowId, packet.e());
+				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.b(), packet.e(), false));
+				c.a(nPlayer, false);
+				NonNullList<net.minecraft.server.v1_16_R3.ItemStack> nonnulllist1 = NonNullList.a();
+				for (int j = 0; j < c.slots.size(); ++j) {
+					net.minecraft.server.v1_16_R3.ItemStack cursor = c.slots.get(j).getItem();
+					nonnulllist1.add(cursor.isEmpty() ? net.minecraft.server.v1_16_R3.ItemStack.b : cursor);
+				}
+				nPlayer.a(c, nonnulllist1);
 			}
-			nPlayer.a(c, nonnulllist1);
-		}
+		});
 	}
 
 	private Method addAmount = Ref.method(Slot.class, "b", int.class);

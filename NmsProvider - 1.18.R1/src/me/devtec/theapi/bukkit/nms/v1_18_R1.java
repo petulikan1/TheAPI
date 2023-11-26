@@ -1036,16 +1036,18 @@ public class v1_18_R1 implements NmsProvider {
 			processClick(gui, gui.getNotInterableSlots(player), c, slot, mouseClick, type, nPlayer);
 			break;
 		}
-		if (type != InventoryClickType.f && (c.a().equals(Containers.h) || c.a().equals(Containers.u)))
-			c.b();
-		for (final it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<net.minecraft.world.item.ItemStack> entry : Int2ObjectMaps.fastIterable(packet.f()))
-			c.b(entry.getIntKey(), entry.getValue());
-		c.a(packet.e());
-		c.i();
-		if (packet.h() != c.j())
-			c.e();
-		else
-			c.d();
+		postToMainThread(() -> {
+			if (type != InventoryClickType.f && (c.a().equals(Containers.h) || c.a().equals(Containers.u)))
+				c.b();
+			for (final it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<net.minecraft.world.item.ItemStack> entry : Int2ObjectMaps.fastIterable(packet.f()))
+				c.b(entry.getIntKey(), entry.getValue());
+			c.a(packet.e());
+			c.i();
+			if (packet.h() != c.j())
+				c.e();
+			else
+				c.d();
+		});
 	}
 
 	private Method addAmount = Ref.method(Slot.class, "b", int.class);

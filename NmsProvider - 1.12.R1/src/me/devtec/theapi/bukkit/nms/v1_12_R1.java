@@ -1085,27 +1085,26 @@ public class v1_12_R1 implements NmsProvider {
 			result = processClick(gui, gui.getNotInterableSlots(player), c, slot, mouseClick, type, nPlayer);
 			break;
 		}
-
-		if (net.minecraft.server.v1_12_R1.ItemStack.matches(packet.e(), result)) {
-			nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), true));
-			nPlayer.f = true;
-			c.b();
-			nPlayer.broadcastCarriedItem();
-			nPlayer.f = false;
-		} else {
-			((IntHashMap<Short>) Ref.get(nPlayer.playerConnection, "k")).a(c.windowId, packet.d());
-			nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), false));
-			c.a(nPlayer, false);
-			NonNullList<net.minecraft.server.v1_12_R1.ItemStack> nonnulllist1 = NonNullList.a();
-
-			for (int j = 0; j < c.slots.size(); ++j) {
-				net.minecraft.server.v1_12_R1.ItemStack cursor = c.slots.get(j).getItem();
-				net.minecraft.server.v1_12_R1.ItemStack itemstack2 = cursor.isEmpty() ? net.minecraft.server.v1_12_R1.ItemStack.a : cursor;
-				nonnulllist1.add(itemstack2);
+		postToMainThread(() -> {
+			if (net.minecraft.server.v1_12_R1.ItemStack.matches(packet.e(), result)) {
+				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), true));
+				nPlayer.f = true;
+				c.b();
+				nPlayer.broadcastCarriedItem();
+				nPlayer.f = false;
+			} else {
+				((IntHashMap<Short>) Ref.get(nPlayer.playerConnection, "k")).a(c.windowId, packet.d());
+				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.a(), packet.d(), false));
+				c.a(nPlayer, false);
+				NonNullList<net.minecraft.server.v1_12_R1.ItemStack> nonnulllist1 = NonNullList.a();
+				for (int j = 0; j < c.slots.size(); ++j) {
+					net.minecraft.server.v1_12_R1.ItemStack cursor = c.slots.get(j).getItem();
+					net.minecraft.server.v1_12_R1.ItemStack itemstack2 = cursor.isEmpty() ? net.minecraft.server.v1_12_R1.ItemStack.a : cursor;
+					nonnulllist1.add(itemstack2);
+				}
+				nPlayer.a(c, nonnulllist1);
 			}
-
-			nPlayer.a(c, nonnulllist1);
-		}
+		});
 	}
 
 	private Method addAmount = Ref.method(Slot.class, "b", int.class);
