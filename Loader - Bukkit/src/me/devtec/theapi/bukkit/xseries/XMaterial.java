@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -44,12 +43,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.potion.Potion;
 
-import com.google.common.base.Enums;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
 import me.devtec.shared.Ref;
 import me.devtec.shared.dataholder.StringContainer;
+import me.devtec.shared.dataholder.cache.TempMap;
 import me.devtec.shared.utility.ParseUtils;
 
 /**
@@ -443,13 +439,13 @@ public enum XMaterial {
 	 *
 	 * @since 1.0.0
 	 */
-	private static final Cache<String, XMaterial> NAME_CACHE = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build();
+	private static final Map<String, XMaterial> NAME_CACHE = new TempMap<>(20 * 60 * 60);
 	/**
 	 * This is used for {@link #isOneOf(Collection)}
 	 *
 	 * @since 3.4.0
 	 */
-	private static final Cache<String, Pattern> CACHED_REGEX = CacheBuilder.newBuilder().expireAfterAccess(3, TimeUnit.HOURS).build();
+	private static final Map<String, Pattern> CACHED_REGEX = new TempMap<>(20 * 60 * 60 * 3);
 	/**
 	 * The maximum data value in the pre-flattening update which belongs to
 	 * {@link #VILLAGER_SPAWN_EGG}<br>
@@ -648,7 +644,7 @@ public enum XMaterial {
 	 */
 	private static XMaterial requestOldXMaterial(String name, byte data) {
 		String holder = name + data;
-		XMaterial cache = NAME_CACHE.getIfPresent(holder);
+		XMaterial cache = NAME_CACHE.get(holder);
 		if (cache != null)
 			return cache;
 
@@ -1004,7 +1000,7 @@ public enum XMaterial {
 			}
 			if (checker.startsWith("REGEX:")) {
 				comp = comp.substring(6);
-				Pattern pattern = CACHED_REGEX.getIfPresent(comp);
+				Pattern pattern = CACHED_REGEX.get(comp);
 				if (pattern == null)
 					try {
 						pattern = Pattern.compile(comp);
