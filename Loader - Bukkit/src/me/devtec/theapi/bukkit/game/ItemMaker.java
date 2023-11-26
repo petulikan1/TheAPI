@@ -114,15 +114,18 @@ public class ItemMaker implements Cloneable {
 			map.put("data", data);
 		if (unbreakable)
 			map.put("unbreakable", unbreakable);
-		map.put("displayName", displayName);
-		map.put("lore", lore);
+		if (displayName != null)
+			map.put("displayName", displayName);
+		if (lore != null)
+			map.put("lore", lore);
 		if (enchants != null) {
 			Map<String, Integer> serialized = new HashMap<>(enchants.size());
 			for (Entry<Enchantment, Integer> s : enchants.entrySet())
 				serialized.put(s.getKey().getName(), s.getValue());
 			map.put("enchants", serialized);
 		}
-		map.put("itemFlags", itemFlags);
+		if (itemFlags != null)
+			map.put("itemFlags", itemFlags);
 		if (nbt != null && nbt.getNBT() != null)
 			map.put("nbt", nbt.getNBT().toString());
 		return map;
@@ -1485,6 +1488,8 @@ public class ItemMaker implements Cloneable {
 			return null;
 		String materialTypeName = serializedItem.get("type").toString();
 		XMaterial type = XMaterial.matchXMaterial(materialTypeName.toUpperCase()).orElse(XMaterial.STONE);
+		if (!type.isSupported())
+			return null;
 		ItemMaker maker;
 		if (type == XMaterial.BUNDLE) {
 			maker = ItemMaker.ofBundle();
@@ -1627,6 +1632,8 @@ public class ItemMaker implements Cloneable {
 
 		String materialTypeName = config.getString(path + "type", config.getString(path + "icon"));
 		XMaterial type = XMaterial.matchXMaterial(materialTypeName.toUpperCase()).orElse(XMaterial.STONE);
+		if (!type.isSupported())
+			return null;
 		ItemMaker maker;
 		if (type == XMaterial.BUNDLE) {
 			maker = ItemMaker.ofBundle();
