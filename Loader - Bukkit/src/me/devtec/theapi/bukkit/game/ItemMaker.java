@@ -400,7 +400,7 @@ public class ItemMaker implements Cloneable {
 
 		if (xmaterial == XMaterial.WRITTEN_BOOK || xmaterial == XMaterial.WRITABLE_BOOK) {
 			BookMeta book = (BookMeta) meta;
-			maker = ofBook();
+			maker = xmaterial == XMaterial.WRITTEN_BOOK ? ofBook() : ofWritableBook();
 			if (book.getAuthor() != null)
 				((BookItemMaker) maker).author(book.getAuthor());
 			if (Ref.isNewerThan(9)) // 1.10+
@@ -642,8 +642,8 @@ public class ItemMaker implements Cloneable {
 		private List<Component> pages;
 		private String generation;
 
-		protected BookItemMaker() {
-			super(Material.WRITTEN_BOOK);
+		protected BookItemMaker(boolean written) {
+			super(written ? Material.WRITTEN_BOOK : XMaterial.WRITABLE_BOOK.parseMaterial());
 		}
 
 		@Override
@@ -1056,6 +1056,7 @@ public class ItemMaker implements Cloneable {
 	public static ItemMaker of(XMaterial material) {
 		switch (material) {
 		case WRITABLE_BOOK:
+			return ofWritableBook();
 		case WRITTEN_BOOK:
 			return ofBook();
 		case LEATHER_HELMET:
@@ -1105,6 +1106,7 @@ public class ItemMaker implements Cloneable {
 			if (material != null) {
 				switch (material) {
 				case WRITABLE_BOOK:
+					return ofWritableBook();
 				case WRITTEN_BOOK:
 					return ofBook();
 				case LEATHER_HELMET:
@@ -1161,7 +1163,11 @@ public class ItemMaker implements Cloneable {
 	}
 
 	public static BookItemMaker ofBook() {
-		return new BookItemMaker();
+		return new BookItemMaker(true);
+	}
+
+	public static BookItemMaker ofWritableBook() {
+		return new BookItemMaker(false);
 	}
 
 	public static EnchantedBookItemMaker ofEnchantedBook() {
@@ -1590,7 +1596,7 @@ public class ItemMaker implements Cloneable {
 		} else if (type == XMaterial.ENCHANTED_BOOK)
 			maker = ItemMaker.ofEnchantedBook();
 		else if (type == XMaterial.WRITTEN_BOOK || type == XMaterial.WRITABLE_BOOK) {
-			maker = ItemMaker.ofBook();
+			maker = type == XMaterial.WRITTEN_BOOK ? ItemMaker.ofBook() : ItemMaker.ofWritableBook();
 			if (serializedItem.containsKey("book.author"))
 				((BookItemMaker) maker).author(ColorUtils.colorize(serializedItem.get("book.author").toString()));
 			if (serializedItem.containsKey("book.generation")) // 1.10+
@@ -1732,7 +1738,7 @@ public class ItemMaker implements Cloneable {
 		} else if (type == XMaterial.ENCHANTED_BOOK)
 			maker = ItemMaker.ofEnchantedBook();
 		else if (type == XMaterial.WRITTEN_BOOK || type == XMaterial.WRITABLE_BOOK) {
-			maker = ItemMaker.ofBook();
+			maker = type == XMaterial.WRITTEN_BOOK ? ItemMaker.ofBook() : ItemMaker.ofWritableBook();
 			if (config.getString(path + "book.author") != null)
 				((BookItemMaker) maker).author(ColorUtils.colorize(config.getString(path + "book.author")));
 			if (config.getString(path + "book.generation") != null) // 1.10+
