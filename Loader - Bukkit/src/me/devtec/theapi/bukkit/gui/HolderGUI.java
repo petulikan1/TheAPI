@@ -58,6 +58,12 @@ public interface HolderGUI {
 	public void onClose(Player player);
 
 	/**
+	 * @apiNote When someone interact with GUI menu or Player's inventory with
+	 *          multiple slots in the same time (Like SHIFT, DRAG or PICKUP_ALL)
+	 */
+	public void onMultipleIteract(Player player, Map<Integer, ItemStack> guiSlots, Map<Integer, ItemStack> playerSlots);
+
+	/**
 	 * @apiNote When someone interact with GUI menu or Player's inventory
 	 * @return Return cancel statement (return true to cancel event)
 	 */

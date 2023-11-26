@@ -65,6 +65,11 @@ public class AnvilGUI implements HolderGUI {
 		return false;
 	}
 
+	@Override
+	public void onMultipleIteract(Player player, Map<Integer, ItemStack> guiSlots, Map<Integer, ItemStack> playerSlots) {
+
+	}
+
 	public final String getName() {
 		return title;
 	}

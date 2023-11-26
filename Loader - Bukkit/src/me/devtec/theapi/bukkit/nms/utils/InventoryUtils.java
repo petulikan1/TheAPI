@@ -2,7 +2,9 @@ package me.devtec.theapi.bukkit.nms.utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -22,15 +24,15 @@ public class InventoryUtils {
 	}
 
 	/**
-	 * @apiNote Modify ItemStacks in the "contents" field and then return list of
+	 * @apiNote Modify ItemStacks in the "contents" field and then return map of
 	 *          modified slots
 	 **/
-	public static List<Integer> shift(int clickedSlot, @Nullable Player whoShift, @Nullable HolderGUI holder, @Nullable ClickType clickType, DestinationType type, List<Integer> ignoredSlots,
+	public static Map<Integer, ItemStack> shift(int clickedSlot, @Nullable Player whoShift, @Nullable HolderGUI holder, @Nullable ClickType clickType, DestinationType type, List<Integer> ignoredSlots,
 			ItemStack[] contents, ItemStack shiftItem) {
 		if (shiftItem == null || shiftItem.getType() == Material.AIR)
-			return Collections.emptyList();
+			return Collections.emptyMap();
 		List<Integer> ignoreSlots = ignoredSlots == null ? Collections.emptyList() : ignoredSlots;
-		List<Integer> modifiedSlots = new ArrayList<>();
+		Map<Integer, ItemStack> modifiedSlots = new HashMap<>();
 		List<Integer> corruptedSlots = new ArrayList<>();
 		int total = shiftItem.getAmount();
 		int state = BukkitLoader.getNmsProvider().getContainerStateId(holder.getContainer(whoShift));
@@ -38,9 +40,11 @@ public class InventoryUtils {
 			ItemStack i = contents[slot];
 			if (i == null || i.getType() == Material.AIR || i.getAmount() >= i.getMaxStackSize())
 				continue;
-			if (type == DestinationType.CUSTOM_INV && ignoreSlots.contains(slot))
+			if (type == DestinationType.CUSTOM_INV && ignoreSlots.contains(slot)) {
+				corruptedSlots.add(slot);
 				continue;
-			if (i.getAmount() < i.getMaxStackSize() && i.getType() == shiftItem.getType() && i.getItemMeta().equals(shiftItem.getItemMeta()) && i.getDurability() == shiftItem.getDurability()) {
+			}
+			if (i.getAmount() < i.getMaxStackSize() && i.getType() == shiftItem.getType() && i.getItemMeta().equals(shiftItem.getItemMeta())) {
 				if (holder != null && whoShift != null && clickType != null && holder.onInteractItem(whoShift, i, i, clickType, slot, type == DestinationType.CUSTOM_INV)) {
 					corruptedSlots.add(slot);
 					continue;
@@ -50,14 +54,15 @@ public class InventoryUtils {
 					shiftItem.setAmount(size - i.getMaxStackSize());
 					i.setAmount(64);
 					total = shiftItem.getAmount();
-					modifiedSlots.add(slot);
+					modifiedSlots.put(slot, i);
 					continue;
 				}
 				total = 0;
 				i.setAmount(size);
-				modifiedSlots.add(slot);
-				if (total != 0 && total == shiftItem.getAmount())
-					corruptedSlots.add(clickedSlot);
+				modifiedSlots.put(slot, i);
+				if (holder != null && !modifiedSlots.isEmpty())
+					holder.onMultipleIteract(whoShift, type == DestinationType.CUSTOM_INV ? modifiedSlots : Collections.emptyMap(),
+							type == DestinationType.CUSTOM_INV ? Collections.emptyMap() : modifiedSlots);
 				for (int s : corruptedSlots)
 					BukkitLoader.getPacketHandler().send(whoShift, BukkitLoader.getNmsProvider().packetSetSlot(BukkitLoader.getNmsProvider().getContainerId(holder.getContainer(whoShift)), s, state,
 							BukkitLoader.getNmsProvider().getSlotItem(holder.getContainer(whoShift), s)));
@@ -68,16 +73,19 @@ public class InventoryUtils {
 		if (firstEmpty != -1) {
 			contents[firstEmpty] = shiftItem;
 			total = 0;
-			modifiedSlots.add(firstEmpty);
-		} else if (total != 0) {
-			modifiedSlots.add(-1); // self
+			modifiedSlots.put(firstEmpty, shiftItem);
+		} else if (total != 0)
 			shiftItem.setAmount(total);
-		}
 		if (total != 0 && total == shiftItem.getAmount())
 			corruptedSlots.add(clickedSlot);
+		if (holder != null && !modifiedSlots.isEmpty())
+			holder.onMultipleIteract(whoShift, type == DestinationType.CUSTOM_INV ? modifiedSlots : Collections.emptyMap(),
+					type == DestinationType.CUSTOM_INV ? Collections.emptyMap() : modifiedSlots);
 		for (int slot : corruptedSlots)
 			BukkitLoader.getPacketHandler().send(whoShift, BukkitLoader.getNmsProvider().packetSetSlot(BukkitLoader.getNmsProvider().getContainerId(holder.getContainer(whoShift)), slot, state,
 					BukkitLoader.getNmsProvider().getSlotItem(holder.getContainer(whoShift), slot)));
+		if (total != 0)
+			modifiedSlots.put(-1, shiftItem); // self
 		return modifiedSlots;
 	}
 
@@ -126,7 +134,7 @@ public class InventoryUtils {
 				if (contents[i] == null || contents[i].getType() == Material.AIR)
 					return i;
 			}
-			for (int i = contents.length - 1; i > -1; --i) {
+			for (int i = contents.length - 1; i > 8; --i) {
 				if (ignoreSlots.contains(i))
 					continue;
 				if (contents[i] == null || contents[i].getType() == Material.AIR)
