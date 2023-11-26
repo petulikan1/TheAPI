@@ -114,9 +114,9 @@ public class ItemMaker implements Cloneable {
 			map.put("data", data);
 		if (unbreakable)
 			map.put("unbreakable", unbreakable);
-		if (displayName != null)
+		if (displayName != null && !displayName.isEmpty())
 			map.put("displayName", displayName);
-		if (lore != null)
+		if (lore != null && !lore.isEmpty())
 			map.put("lore", lore);
 		if (enchants != null) {
 			Map<String, Integer> serialized = new HashMap<>(enchants.size());
@@ -291,9 +291,28 @@ public class ItemMaker implements Cloneable {
 		nbtEdit.remove("Enchantments");
 		nbtEdit.remove("CustomModelData");
 		nbtEdit.remove("ench");
+		nbtEdit.remove("SkullOwner");
+		nbtEdit.remove("BlockEntityTag");
+		// book
+		nbtEdit.remove("author");
+		nbtEdit.remove("title");
+		nbtEdit.remove("filtered_title");
+		nbtEdit.remove("pages");
+		nbtEdit.remove("resolved");
+		nbtEdit.remove("generation");
+		// banner
+		nbtEdit.remove("base-color");
+		nbtEdit.remove("patterns");
+		nbtEdit.remove("pattern");
+		// banner
+		nbtEdit.remove("base-color");
+		nbtEdit.remove("patterns");
+		nbtEdit.remove("pattern");
 
 		if (!nbtEdit.getKeys().isEmpty())
 			nbt = nbtEdit;
+		else
+			nbt = null;
 		return this;
 	}
 
@@ -385,16 +404,16 @@ public class ItemMaker implements Cloneable {
 			if (book.getAuthor() != null)
 				((BookItemMaker) maker).author(book.getAuthor());
 			if (Ref.isNewerThan(9)) // 1.10+
-				((BookItemMaker) maker).generation(book.getGeneration().name());
+				((BookItemMaker) maker).generation(book.getGeneration() == null ? null : book.getGeneration().name());
 			((BookItemMaker) maker).title(book.getTitle());
 			if (!book.getPages().isEmpty())
 				((BookItemMaker) maker).pages(book.getPages());
 		}
 
 		if (meta.getDisplayName() != null)
-			maker.displayName(meta.getDisplayName());
+			maker.displayName = meta.getDisplayName();
 		if (meta.getLore() != null && !meta.getLore().isEmpty())
-			maker.lore(meta.getLore());
+			maker.lore = new ArrayList<>(meta.getLore());
 		// Unbreakable
 		if (Ref.isNewerThan(10)) { // 1.11+
 			if (meta.isUnbreakable())
@@ -477,7 +496,7 @@ public class ItemMaker implements Cloneable {
 		public Map<String, Object> serializeToMap() {
 			Map<String, Object> map = super.serializeToMap();
 			if (owner != null) {
-				map.put("head.type", ownerType);
+				map.put("head.type", getFormattedOwnerType());
 				map.put("head.owner", owner);
 			}
 			return map;
@@ -630,15 +649,18 @@ public class ItemMaker implements Cloneable {
 		@Override
 		public Map<String, Object> serializeToMap() {
 			Map<String, Object> map = super.serializeToMap();
-			map.put("book.author", author);
-			map.put("book.title", title);
+			if (author != null)
+				map.put("book.author", author);
+			if (title != null)
+				map.put("book.title", title);
 			if (pages != null) {
 				List<String> jsonList = new ArrayList<>();
 				for (Component page : pages)
 					jsonList.add(Json.writer().simpleWrite(ComponentAPI.toJsonList(page)));
 				map.put("book.pages", jsonList);
 			}
-			map.put("book.generation", generation);
+			if (generation != null)
+				map.put("book.generation", generation);
 			return map;
 		}
 
@@ -678,8 +700,8 @@ public class ItemMaker implements Cloneable {
 
 		public BookItemMaker pages(List<String> pages) {
 			this.pages = new ArrayList<>();
-			for (String string : ColorUtils.colorize(pages))
-				this.pages.add(ComponentAPI.fromString(string));
+			for (String string : pages)
+				this.pages.add(ComponentAPI.fromString(ColorUtils.colorize(string)));
 			return this;
 		}
 
@@ -860,7 +882,8 @@ public class ItemMaker implements Cloneable {
 		@Override
 		public Map<String, Object> serializeToMap() {
 			Map<String, Object> map = super.serializeToMap();
-			map.put("shulker.name", name);
+			if (name != null)
+				map.put("shulker.name", name);
 			if (contents != null) {
 				List<Map<String, Object>> serialized = new ArrayList<>(contents.length);
 				for (ItemStack content : contents)
@@ -1443,7 +1466,7 @@ public class ItemMaker implements Cloneable {
 				BookMeta book = (BookMeta) meta;
 				config.set(path + "book.author", book.getAuthor());
 				if (Ref.isNewerThan(9)) // 1.10+
-					config.set(path + "book.generation", book.getGeneration().name());
+					config.set(path + "book.generation", book.getGeneration() == null ? null : book.getGeneration().name());
 				config.set(path + "book.title", book.getTitle());
 				if (!book.getPages().isEmpty())
 					config.set(path + "book.pages", book.getPages());
@@ -1760,10 +1783,9 @@ public class ItemMaker implements Cloneable {
 	public static ItemMaker of(ItemStack stack) {
 		if (stack == null)
 			return null; // invalid item
-
 		ItemMaker maker = of(stack.getType());
 
-		if (stack.getData() != null)
+		if (Ref.isOlderThan(13) && stack.getData() != null)
 			maker.data(stack.getData().getData());
 
 		ItemMeta meta = stack.getItemMeta();
@@ -1773,23 +1795,7 @@ public class ItemMaker implements Cloneable {
 			maker.damage(stack.getDurability());
 		maker.amount(stack.getAmount());
 
-		NBTEdit nbt = new NBTEdit(stack);
-		// remove unused tags
-		nbt.remove("id");
-		nbt.remove("Count");
-		nbt.remove("lvl");
-		nbt.remove("display");
-		nbt.remove("Name");
-		nbt.remove("Lore");
-		nbt.remove("Damage");
-		nbt.remove("color");
-		nbt.remove("Unbreakable");
-		nbt.remove("HideFlags");
-		nbt.remove("Enchantments");
-		nbt.remove("CustomModelData");
-		nbt.remove("ench");
-		if (!nbt.getKeys().isEmpty())
-			maker.nbt(nbt);
+		maker.nbt(new NBTEdit(stack));
 		return maker;
 	}
 
