@@ -477,6 +477,8 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	public void onDisable() {
 		metrics.shutdown();
 		API.setEnabled(false);
+		for (HolderGUI gui : new ArrayList<>(this.gui.values()))
+			gui.close();
 		if (handler != null) {
 			BukkitLoader.handler.close();
 			if (bossbars != null)
