@@ -207,6 +207,11 @@ public class ItemMaker implements Cloneable {
 		return this;
 	}
 
+	public ItemMaker rawDisplayName(String name) {
+		displayName = name;
+		return this;
+	}
+
 	@Nullable
 	public String getDisplayName() {
 		return displayName;
@@ -217,7 +222,16 @@ public class ItemMaker implements Cloneable {
 	}
 
 	public ItemMaker lore(List<String> lore) {
-		this.lore = ColorUtils.colorize(lore);
+		this.lore = ColorUtils.colorize(new ArrayList<>(lore));
+		return this;
+	}
+
+	public ItemMaker rawLore(String... lore) {
+		return this.lore(Arrays.asList(lore));
+	}
+
+	public ItemMaker rawLore(List<String> lore) {
+		this.lore = new ArrayList<>(lore);
 		return this;
 	}
 
@@ -402,18 +416,18 @@ public class ItemMaker implements Cloneable {
 			BookMeta book = (BookMeta) meta;
 			maker = xmaterial == XMaterial.WRITTEN_BOOK ? ofBook() : ofWritableBook();
 			if (book.getAuthor() != null)
-				((BookItemMaker) maker).author(book.getAuthor());
+				((BookItemMaker) maker).rawAuthor(book.getAuthor());
 			if (Ref.isNewerThan(9)) // 1.10+
 				((BookItemMaker) maker).generation(book.getGeneration() == null ? null : book.getGeneration().name());
-			((BookItemMaker) maker).title(book.getTitle());
+			((BookItemMaker) maker).rawTitle(book.getTitle());
 			if (!book.getPages().isEmpty())
-				((BookItemMaker) maker).pages(book.getPages());
+				((BookItemMaker) maker).rawPages(book.getPages());
 		}
 
 		if (meta.getDisplayName() != null)
-			maker.displayName = meta.getDisplayName();
+			maker.rawDisplayName(meta.getDisplayName());
 		if (meta.getLore() != null && !meta.getLore().isEmpty())
-			maker.lore = new ArrayList<>(meta.getLore());
+			maker.rawLore(meta.getLore());
 		// Unbreakable
 		if (Ref.isNewerThan(10)) { // 1.11+
 			if (meta.isUnbreakable())
@@ -669,6 +683,11 @@ public class ItemMaker implements Cloneable {
 			return this;
 		}
 
+		public BookItemMaker rawAuthor(String author) {
+			this.author = author;
+			return this;
+		}
+
 		@Nullable
 		public String getAuthor() {
 			return author;
@@ -676,6 +695,11 @@ public class ItemMaker implements Cloneable {
 
 		public BookItemMaker title(String title) {
 			this.title = ColorUtils.colorize(title);
+			return this;
+		}
+
+		public BookItemMaker rawTitle(String title) {
+			this.title = title;
 			return this;
 		}
 
@@ -702,6 +726,13 @@ public class ItemMaker implements Cloneable {
 			this.pages = new ArrayList<>();
 			for (String string : pages)
 				this.pages.add(ComponentAPI.fromString(ColorUtils.colorize(string)));
+			return this;
+		}
+
+		public BookItemMaker rawPages(List<String> pages) {
+			this.pages = new ArrayList<>();
+			for (String string : pages)
+				this.pages.add(ComponentAPI.fromString(string));
 			return this;
 		}
 
@@ -1478,41 +1509,73 @@ public class ItemMaker implements Cloneable {
 					config.set(path + "book.pages", book.getPages());
 			}
 
-			NBTEdit nbt = new NBTEdit(stack);
+			NBTEdit nbtEdit = new NBTEdit(stack);
 			// remove unused tags
-			nbt.remove("id");
-			nbt.remove("Count");
-			nbt.remove("lvl");
-			nbt.remove("display");
-			nbt.remove("Name");
-			nbt.remove("Lore");
-			nbt.remove("Damage");
-			nbt.remove("color");
-			nbt.remove("Unbreakable");
-			nbt.remove("HideFlags");
-			nbt.remove("Enchantments");
-			nbt.remove("CustomModelData");
-			nbt.remove("ench");
-			if (!nbt.getKeys().isEmpty())
-				config.set(path + "nbt", nbt.getNBT() + ""); // save clear nbt
+			nbtEdit.remove("id");
+			nbtEdit.remove("Count");
+			nbtEdit.remove("lvl");
+			nbtEdit.remove("display");
+			nbtEdit.remove("Name");
+			nbtEdit.remove("Lore");
+			nbtEdit.remove("Damage");
+			nbtEdit.remove("color");
+			nbtEdit.remove("Unbreakable");
+			nbtEdit.remove("HideFlags");
+			nbtEdit.remove("Enchantments");
+			nbtEdit.remove("CustomModelData");
+			nbtEdit.remove("ench");
+			nbtEdit.remove("SkullOwner");
+			nbtEdit.remove("BlockEntityTag");
+			// book
+			nbtEdit.remove("author");
+			nbtEdit.remove("title");
+			nbtEdit.remove("filtered_title");
+			nbtEdit.remove("pages");
+			nbtEdit.remove("resolved");
+			nbtEdit.remove("generation");
+			// banner
+			nbtEdit.remove("base-color");
+			nbtEdit.remove("patterns");
+			nbtEdit.remove("pattern");
+			// banner
+			nbtEdit.remove("base-color");
+			nbtEdit.remove("patterns");
+			nbtEdit.remove("pattern");
+			if (!nbtEdit.getKeys().isEmpty())
+				config.set(path + "nbt", nbtEdit.getNBT() + ""); // save clear nbt
 		}
 	}
 
 	@Nullable // Nullable if section is empty / type is invalid
 	public static ItemStack loadFromConfig(Config config, String path) {
-		ItemMaker maker = loadMakerFromConfig(config, path);
+		return loadFromConfig(config, path, true);
+	}
+
+	@Nullable // Nullable if section is empty / type is invalid
+	public static ItemStack loadFromConfig(Config config, String path, boolean colorize) {
+		ItemMaker maker = loadMakerFromConfig(config, path, colorize);
 		return maker == null ? null : maker.build();
 	}
 
 	@Nullable // Nullable if map is empty / type is invalid
 	public static ItemStack loadFromJson(Map<String, Object> serializedItem) {
-		ItemMaker maker = loadMakerFromJson(serializedItem);
+		return loadFromJson(serializedItem, true);
+	}
+
+	@Nullable // Nullable if map is empty / type is invalid
+	public static ItemStack loadFromJson(Map<String, Object> serializedItem, boolean colorize) {
+		ItemMaker maker = loadMakerFromJson(serializedItem, colorize);
 		return maker == null ? null : maker.build();
+	}
+
+	@Nullable // Nullable if section is empty / type is invalid
+	public static ItemMaker loadMakerFromJson(Map<String, Object> serializedItem) {
+		return loadMakerFromJson(serializedItem, true);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Nullable // Nullable if section is empty / type is invalid
-	public static ItemMaker loadMakerFromJson(Map<String, Object> serializedItem) {
+	public static ItemMaker loadMakerFromJson(Map<String, Object> serializedItem, boolean colorize) {
 		if (serializedItem.isEmpty() || !serializedItem.containsKey("type"))
 			return null;
 		String materialTypeName = serializedItem.get("type").toString();
@@ -1527,7 +1590,7 @@ public class ItemMaker implements Cloneable {
 			for (Map<String, Object> pattern : serializedContents) {
 				if (pattern == null)
 					continue;
-				ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern);
+				ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern, colorize);
 				if (itemMaker != null && itemMaker.getMaterial() != Material.AIR)
 					contents.add(itemMaker.build());
 			}
@@ -1543,7 +1606,7 @@ public class ItemMaker implements Cloneable {
 				if (pattern == null)
 					contents.add(null);
 				else {
-					ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern);
+					ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern, colorize);
 					contents.add(itemMaker == null ? null : itemMaker.build());
 				}
 			((ShulkerBoxItemMaker) maker).contents(contents.toArray(new ItemStack[27]));
@@ -1598,11 +1661,17 @@ public class ItemMaker implements Cloneable {
 		else if (type == XMaterial.WRITTEN_BOOK || type == XMaterial.WRITABLE_BOOK) {
 			maker = type == XMaterial.WRITTEN_BOOK ? ItemMaker.ofBook() : ItemMaker.ofWritableBook();
 			if (serializedItem.containsKey("book.author"))
-				((BookItemMaker) maker).author(ColorUtils.colorize(serializedItem.get("book.author").toString()));
+				if (colorize)
+					((BookItemMaker) maker).author(serializedItem.get("book.author").toString());
+				else
+					((BookItemMaker) maker).rawAuthor(serializedItem.get("book.author").toString());
 			if (serializedItem.containsKey("book.generation")) // 1.10+
 				((BookItemMaker) maker).generation(serializedItem.get("book.generation").toString().toUpperCase());
 			if (serializedItem.containsKey("book.title"))
-				((BookItemMaker) maker).title(ColorUtils.colorize(serializedItem.get("book.title").toString()));
+				if (colorize)
+					((BookItemMaker) maker).title(serializedItem.get("book.title").toString());
+				else
+					((BookItemMaker) maker).rawTitle(serializedItem.get("book.title").toString());
 
 			if (serializedItem.containsKey("book.pages")) {
 				List<String> inJson = (List<String>) serializedItem.get("book.pages");
@@ -1630,11 +1699,17 @@ public class ItemMaker implements Cloneable {
 
 		String displayName = (String) serializedItem.get("displayName");
 		if (displayName != null)
-			maker.displayName(displayName);
+			if (colorize)
+				maker.displayName(displayName);
+			else
+				maker.rawDisplayName(displayName);
 		if (serializedItem.containsKey("lore")) {
 			List<String> lore = (List<String>) serializedItem.get("lore");
 			if (!lore.isEmpty())
-				maker.lore(lore);
+				if (colorize)
+					maker.lore(lore);
+				else
+					maker.rawLore(displayName);
 		}
 		if (serializedItem.containsKey("unbreakable") && (boolean) serializedItem.get("unbreakable"))
 			maker.unbreakable(true);
@@ -1654,6 +1729,11 @@ public class ItemMaker implements Cloneable {
 
 	@Nullable // Nullable if section is empty / type is invalid
 	public static ItemMaker loadMakerFromConfig(Config config, String path) {
+		return loadMakerFromConfig(config, path, true);
+	}
+
+	@Nullable // Nullable if section is empty / type is invalid
+	public static ItemMaker loadMakerFromConfig(Config config, String path, boolean colorize) {
 		if (!path.isEmpty() && path.charAt(path.length() - 1) != '.')
 			path = path + '.';
 		if (config.getString(path + "type", config.getString(path + "icon")) == null)
@@ -1671,7 +1751,7 @@ public class ItemMaker implements Cloneable {
 			for (Map<String, Object> pattern : serializedContents) {
 				if (pattern == null)
 					continue;
-				ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern);
+				ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern, colorize);
 				if (itemMaker != null && itemMaker.getMaterial() != Material.AIR)
 					contents.add(itemMaker.build());
 			}
@@ -1687,7 +1767,7 @@ public class ItemMaker implements Cloneable {
 				if (pattern == null)
 					contents.add(null);
 				else {
-					ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern);
+					ItemMaker itemMaker = ItemMaker.loadMakerFromJson(pattern, colorize);
 					contents.add(itemMaker == null ? null : itemMaker.build());
 				}
 			((ShulkerBoxItemMaker) maker).contents(contents.toArray(new ItemStack[27]));
@@ -1740,12 +1820,22 @@ public class ItemMaker implements Cloneable {
 		else if (type == XMaterial.WRITTEN_BOOK || type == XMaterial.WRITABLE_BOOK) {
 			maker = type == XMaterial.WRITTEN_BOOK ? ItemMaker.ofBook() : ItemMaker.ofWritableBook();
 			if (config.getString(path + "book.author") != null)
-				((BookItemMaker) maker).author(ColorUtils.colorize(config.getString(path + "book.author")));
+				if (colorize)
+					((BookItemMaker) maker).author(config.getString(path + "book.author"));
+				else
+					((BookItemMaker) maker).rawAuthor(config.getString(path + "book.author"));
 			if (config.getString(path + "book.generation") != null) // 1.10+
 				((BookItemMaker) maker).generation(config.getString(path + "book.generation").toUpperCase());
 			if (config.getString(path + "book.title") != null)
-				((BookItemMaker) maker).title(ColorUtils.colorize(config.getString(path + "book.title")));
-			((BookItemMaker) maker).pages(ColorUtils.colorize(config.getStringList(path + "book.pages")));
+				if (colorize)
+					((BookItemMaker) maker).title(config.getString(path + "book.title"));
+				else
+					((BookItemMaker) maker).rawTitle(config.getString(path + "book.title"));
+			if (!config.getStringList(path + "book.pages").isEmpty())
+				if (colorize)
+					((BookItemMaker) maker).pages(config.getStringList(path + "book.pages"));
+				else
+					((BookItemMaker) maker).rawPages(config.getStringList(path + "book.pages"));
 		} else {
 			Material bukkitType; // Modded server support
 			maker = type == XMaterial.STONE && !materialTypeName.equals("STONE") && (bukkitType = Material.getMaterial(materialTypeName)) != null ? ItemMaker.of(bukkitType) : ItemMaker.of(type);
@@ -1762,10 +1852,16 @@ public class ItemMaker implements Cloneable {
 
 		String displayName = config.getString(path + "displayName", config.getString(path + "display-name"));
 		if (displayName != null)
-			maker.displayName(displayName);
+			if (colorize)
+				maker.displayName(displayName);
+			else
+				maker.rawDisplayName(displayName);
 		List<String> lore = config.getStringList(path + "lore");
 		if (!lore.isEmpty())
-			maker.lore(lore);
+			if (colorize)
+				maker.lore(lore);
+			else
+				maker.rawLore(lore);
 		if (config.getBoolean(path + "unbreakable"))
 			maker.unbreakable(true);
 		if (Ref.isNewerThan(7)) // 1.8+
