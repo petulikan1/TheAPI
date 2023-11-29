@@ -959,7 +959,7 @@ public class v1_16_R3 implements NmsProvider {
 			break;
 		}
 
-		if (oldItem.getType() == Material.AIR && newItem.getType() == Material.AIR)
+		if ((!(gui instanceof AnvilGUI) || slot != 2) && oldItem.getType() == Material.AIR && newItem.getType() == Material.AIR)
 			return true;
 
 		boolean cancel = false;
