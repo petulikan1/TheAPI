@@ -1709,7 +1709,7 @@ public class ItemMaker implements Cloneable {
 				if (colorize)
 					maker.lore(lore);
 				else
-					maker.rawLore(displayName);
+					maker.rawLore(lore);
 		}
 		if (serializedItem.containsKey("unbreakable") && (boolean) serializedItem.get("unbreakable"))
 			maker.unbreakable(true);
