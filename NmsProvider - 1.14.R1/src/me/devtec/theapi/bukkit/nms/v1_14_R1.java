@@ -15,12 +15,14 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
@@ -837,32 +839,32 @@ public class v1_14_R1 implements NmsProvider {
 	}
 
 	@Override
-	public void openAnvilGUI(Player player, Object con, Component title) {
-		ContainerAnvil container = (ContainerAnvil) con;
-		EntityPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
-		int id = container.windowId;
-		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, "minecraft:anvil", 0, title));
-		net.minecraft.server.v1_14_R1.ItemStack carried = nmsPlayer.inventory.getCarried();
-		if (!carried.isEmpty())
-			BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, -1, carried));
-		int slot = 0;
-		for (net.minecraft.server.v1_14_R1.ItemStack item : container.b()) {
-			if (slot == 3)
-				break;
-			if (!item.isEmpty())
-				BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, slot, item));
-			++slot;
-		}
-		nmsPlayer.activeContainer.transferTo(container, (CraftPlayer) player);
-		nmsPlayer.activeContainer = container;
-		container.addSlotListener(nmsPlayer);
-		container.checkReachable = false;
+	public void openAnvilGUI(Player player, Object container, Component title) {
+		openGUI(player, container, "minecraft:anvil", 0, title);
 	}
 
 	@Override
 	public Object createContainer(Inventory inv, Player player) {
-		return inv.getType() == InventoryType.ANVIL ? createAnvilContainer(inv, player)
-				: new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
+		if (inv.getType() == InventoryType.ANVIL) {
+			ContainerAnvil container = new ContainerAnvil(((CraftPlayer) player).getHandle().nextContainerCounter(), ((CraftPlayer) player).getHandle().inventory, new ContainerAccess() {
+
+				@Override
+				public <T> Optional<T> a(BiFunction<net.minecraft.server.v1_14_R1.World, BlockPosition, T> getter) {
+					return Optional.empty();
+				}
+
+				@Override
+				public Location getLocation() {
+					return null;
+				}
+			});
+			postToMainThread(() -> {
+				int slot = 0;
+				for (ItemStack stack : inv.getContents())
+					container.getSlot(slot++).set((net.minecraft.server.v1_14_R1.ItemStack) asNMSItem(stack));
+			});
+		}
+		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
 	}
 
 	@Override

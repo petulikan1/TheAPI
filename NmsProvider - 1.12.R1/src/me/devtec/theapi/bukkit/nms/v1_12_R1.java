@@ -873,32 +873,23 @@ public class v1_12_R1 implements NmsProvider {
 	}
 
 	@Override
-	public void openAnvilGUI(Player player, Object con, Component title) {
-		ContainerAnvil container = (ContainerAnvil) con;
-		EntityPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
-		int id = container.windowId;
-		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, "minecraft:anvil", 0, title));
-		net.minecraft.server.v1_12_R1.ItemStack carried = nmsPlayer.inventory.getCarried();
-		if (!carried.isEmpty())
-			BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, -1, carried));
-		int slot = 0;
-		for (net.minecraft.server.v1_12_R1.ItemStack item : container.a()) {
-			if (slot == 3)
-				break;
-			if (!item.isEmpty())
-				BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, slot, item));
-			++slot;
-		}
-		nmsPlayer.activeContainer.transferTo(container, (CraftPlayer) player);
-		nmsPlayer.activeContainer = container;
-		container.addSlotListener(nmsPlayer);
-		container.checkReachable = false;
+	public void openAnvilGUI(Player player, Object container, Component title) {
+		openGUI(player, container, "minecraft:anvil", 0, title);
 	}
 
 	@Override
 	public Object createContainer(Inventory inv, Player player) {
-		return inv.getType() == InventoryType.ANVIL ? createAnvilContainer(inv, player)
-				: new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
+		if (inv.getType() == InventoryType.ANVIL) {
+			int id = ((CraftPlayer) player).getHandle().nextContainerCounter();
+			ContainerAnvil container = new ContainerAnvil(((CraftPlayer) player).getHandle().inventory, ((CraftWorld) player.getWorld()).getHandle(), zero, ((CraftPlayer) player).getHandle());
+			container.windowId = id;
+			postToMainThread(() -> {
+				int slot = 0;
+				for (ItemStack stack : inv.getContents())
+					container.getSlot(slot++).set((net.minecraft.server.v1_12_R1.ItemStack) asNMSItem(stack));
+			});
+		}
+		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
 	}
 
 	@Override
