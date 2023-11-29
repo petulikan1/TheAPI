@@ -862,13 +862,13 @@ public class v1_8_R3 implements NmsProvider {
 		int id = ((Container) container).windowId;
 		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, legacy, size, title));
 		net.minecraft.server.v1_8_R3.ItemStack carried = ((CraftPlayer) player).getHandle().inventory.getCarried();
-		if (!Item.REGISTRY.c(carried.getItem()).a().equals("air"))
+		if (carried != null && carried.count != 0)
 			BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, -1, carried));
 		int slot = 0;
 		for (net.minecraft.server.v1_8_R3.ItemStack item : ((Container) container).a()) {
 			if (slot == size)
 				break;
-			if (!Item.REGISTRY.c(item.getItem()).a().equals("air"))
+			if (item != null && item.count != 0)
 				BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, slot, item));
 			++slot;
 		}
@@ -891,18 +891,21 @@ public class v1_8_R3 implements NmsProvider {
 		EntityPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
 		int id = container.windowId;
 		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, "minecraft:anvil", 0, title));
+		net.minecraft.server.v1_8_R3.ItemStack carried = nmsPlayer.inventory.getCarried();
+		if (carried != null && carried.count != 0)
+			BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, -1, carried));
 		int slot = 0;
-		for (net.minecraft.server.v1_8_R3.ItemStack item : ((Container) container).b) {
+		for (net.minecraft.server.v1_8_R3.ItemStack item : container.a()) {
 			if (slot == 3)
 				break;
-			if (!Item.REGISTRY.c(item.getItem()).a().equals("air"))
+			if (item != null && item.count != 0)
 				BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, slot, item));
 			++slot;
 		}
-		nmsPlayer.activeContainer.transferTo((Container) container, (CraftPlayer) player);
+		nmsPlayer.activeContainer.transferTo(container, (CraftPlayer) player);
 		nmsPlayer.activeContainer = container;
-		((Container) container).addSlotListener(nmsPlayer);
-		((Container) container).checkReachable = false;
+		container.addSlotListener(nmsPlayer);
+		container.checkReachable = false;
 	}
 
 	@Override
@@ -965,7 +968,6 @@ public class v1_8_R3 implements NmsProvider {
 		if (slot < -1 && slot != -999)
 			return true;
 
-		container = gui instanceof AnvilGUI ? (Container) Ref.get(container, "delegate") : (Container) container;
 		Container c = (Container) container;
 		EntityPlayer nPlayer = ((CraftPlayer) player).getHandle();
 

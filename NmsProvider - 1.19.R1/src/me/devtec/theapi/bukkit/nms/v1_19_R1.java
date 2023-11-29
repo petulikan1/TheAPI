@@ -815,13 +815,13 @@ public class v1_19_R1 implements NmsProvider {
 		int id = ((Container) container).j;
 		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, legacy, size, title));
 		net.minecraft.world.item.ItemStack carried = ((Container) container).g();
-		if (!IRegistry.Y.b(carried.c()).a().equals("air"))
+		if (!carried.b())
 			BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, getContainerStateId(container), -1, carried));
 		int slot = 0;
 		for (net.minecraft.world.item.ItemStack item : ((Container) container).c()) {
 			if (slot == size)
 				break;
-			if (!IRegistry.Y.b(item.c()).a().equals("air"))
+			if (!item.b())
 				BukkitLoader.getPacketHandler().send(player, new PacketPlayOutSetSlot(id, getContainerStateId(container), slot, item));
 			++slot;
 		}
@@ -845,7 +845,8 @@ public class v1_19_R1 implements NmsProvider {
 
 	@Override
 	public Object createContainer(Inventory inv, Player player) {
-		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
+		return inv.getType() == InventoryType.ANVIL ? Ref.get(new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter()), "delegate")
+				: new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
 	}
 
 	@Override
@@ -882,7 +883,6 @@ public class v1_19_R1 implements NmsProvider {
 		if (packet.c() < -1 && packet.c() != -999)
 			return true;
 
-		container = gui instanceof AnvilGUI ? (Container) Ref.get(container, "delegate") : (Container) container;
 		Container c = (Container) container;
 		EntityHuman nPlayer = ((CraftPlayer) player).getHandle();
 
