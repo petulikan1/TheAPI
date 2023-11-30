@@ -34,6 +34,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import me.devtec.shared.API;
 import me.devtec.shared.Ref;
+import me.devtec.shared.Ref.ServerType;
 import me.devtec.shared.commands.structures.CommandStructure;
 import me.devtec.shared.dataholder.Config;
 import me.devtec.shared.dataholder.DataType;
@@ -339,7 +340,10 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			MemoryCompiler.allJars += (System.getProperty("os.name").toLowerCase().contains("win") ? ";" : ":") + (fixedPath.charAt(0) == '/' ? fixedPath : "./" + fixedPath);
 		}
 		addAllJarFiles(args, new File("plugins"), false); // Plugins
-		addAllJarFiles(args, new File("libraries"), true); // Libraries
+		if (Ref.serverType() == ServerType.PAPER)
+			addAllJarFiles(args, new File("libraries"), true); // Libraries
+		else
+			addAllJarFiles(args, new File("bundler/libraries"), true); // Libraries
 		MemoryCompiler.allJars += args.toString();
 	}
 

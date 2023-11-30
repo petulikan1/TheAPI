@@ -5,6 +5,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.zip.GZIPInputStream;
 
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
@@ -36,6 +38,10 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.profile.PlayerProfile;
+
+import com.destroystokyo.paper.profile.ProfileProperty;
+import com.google.common.collect.Multimap;
 
 import me.arcaniax.hdb.api.HeadDatabaseAPI;
 import me.devtec.shared.Ref;
@@ -63,8 +69,9 @@ public class ItemMaker implements Cloneable {
 			hdbApi = new HeadDatabaseAPI();
 			HDB_TYPE = 1; // paid
 		}
-
 	}
+	static final Field properties = Ref.field(Ref.craft("profile.CraftPlayerProfile"), "properties");
+	static final Field value = Ref.field(Ref.getClass("com.mojang.authlib.properties.Property"), "value");
 
 	private Material material;
 	private int amount = 1;
@@ -369,14 +376,27 @@ public class ItemMaker implements Cloneable {
 		if (xmaterial == XMaterial.PLAYER_HEAD) {
 			SkullMeta skull = (SkullMeta) meta;
 			maker = ofHead();
-			if (skull.getOwner() != null)
+			if (Ref.isNewerThan(16) && Ref.serverType() == ServerType.PAPER) {
+				com.destroystokyo.paper.profile.PlayerProfile profile = skull.getPlayerProfile();
+				for (ProfileProperty property : profile.getProperties())
+					if (property.getName().equals("textures")) {
+						((HeadItemMaker) maker).skinValues(property.getValue());
+						break;
+					}
+			} else if (Ref.isNewerThan(17)) {
+				PlayerProfile profile = skull.getOwnerProfile();
+				@SuppressWarnings("unchecked")
+				Multimap<String, Object> props = (Multimap<String, Object>) Ref.get(profile, ItemMaker.properties);
+				Collection<Object> coll = props.get("textures");
+				String value = coll.isEmpty() ? null : (String) Ref.get(coll.iterator().next(), ItemMaker.value);
+				if (value != null)
+					((HeadItemMaker) maker).skinValues(value);
+			} else if (skull.getOwner() != null && !skull.getOwner().isEmpty())
 				((HeadItemMaker) maker).skinName(skull.getOwner());
 			else {
 				Object profile = Ref.get(skull, HeadItemMaker.profileField);
 				if (profile != null) {
-
 					PropertyHandler properties = BukkitLoader.getNmsProvider().fromGameProfile(profile).getProperties().get("textures");
-
 					String value = properties == null ? null : properties.getValues();
 					if (value != null)
 						((HeadItemMaker) maker).skinValues(value);
@@ -575,18 +595,31 @@ public class ItemMaker implements Cloneable {
 			if (!(meta instanceof SkullMeta))
 				return super.apply(meta);
 			SkullMeta iMeta = (SkullMeta) meta;
-			if (owner != null)
+			String finalValue = owner;
+			if (finalValue != null)
 				switch (ownerType) {
 				case 0: // Player
-					iMeta.setOwner(owner);
+					iMeta.setOwner(finalValue);
 					break;
+				case 2: // Url
+					finalValue = ItemMaker.fromUrl(owner);
 				case 1: { // Values
-					Ref.set(iMeta, HeadItemMaker.profileField, BukkitLoader.getNmsProvider().toGameProfile(GameProfileHandler.of("TheAPI", UUID.randomUUID(), PropertyHandler.of("textures", owner))));
-					break;
-				}
-				case 2: { // Url
-					Ref.set(iMeta, HeadItemMaker.profileField,
-							BukkitLoader.getNmsProvider().toGameProfile(GameProfileHandler.of("TheAPI", UUID.randomUUID(), PropertyHandler.of("textures", ItemMaker.fromUrl(owner)))));
+					if (Ref.isNewerThan(16) && Ref.serverType() == ServerType.PAPER) {
+						com.destroystokyo.paper.profile.PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+						profile.setProperty(new ProfileProperty("textures", finalValue));
+						iMeta.setPlayerProfile(profile);
+					} else if (Ref.isNewerThan(17)) {
+						PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID(), "");
+						@SuppressWarnings("unchecked")
+						Multimap<String, Object> props = (Multimap<String, Object>) Ref.get(profile, ItemMaker.properties);
+						props.removeAll("textures");
+						Object property = Ref.newInstance(Ref.constructor(Ref.getClass("com.mojang.authlib.properties.Property"), String.class, String.class, String.class), "textures", finalValue,
+								null);
+						props.put("textures", property);
+						iMeta.setOwnerProfile(profile);
+					} else
+						Ref.set(iMeta, HeadItemMaker.profileField,
+								BukkitLoader.getNmsProvider().toGameProfile(GameProfileHandler.of("", UUID.randomUUID(), PropertyHandler.of("textures", finalValue))));
 					break;
 				}
 				default: // New dimension
@@ -1459,15 +1492,31 @@ public class ItemMaker implements Cloneable {
 				config.set(path + "leather.color", "#" + (hex.length() > 6 ? hex.substring(2) : hex));
 			} else if (type == XMaterial.PLAYER_HEAD && meta instanceof SkullMeta) {
 				SkullMeta skull = (SkullMeta) meta;
-				if (skull.getOwner() != null) {
+				if (Ref.isNewerThan(16) && Ref.serverType() == ServerType.PAPER) {
+					com.destroystokyo.paper.profile.PlayerProfile profile = skull.getPlayerProfile();
+					for (ProfileProperty property : profile.getProperties())
+						if (property.getName().equals("textures")) {
+							config.set(path + "head.owner", property.getValue());
+							config.set(path + "head.type", "VALUES");
+							break;
+						}
+				} else if (Ref.isNewerThan(17)) {
+					PlayerProfile profile = skull.getOwnerProfile();
+					@SuppressWarnings("unchecked")
+					Multimap<String, Object> props = (Multimap<String, Object>) Ref.get(profile, ItemMaker.properties);
+					Collection<Object> coll = props.get("textures");
+					String value = coll.isEmpty() ? null : (String) Ref.get(coll.iterator().next(), ItemMaker.value);
+					if (value != null) {
+						config.set(path + "head.owner", value);
+						config.set(path + "head.type", "VALUES");
+					}
+				} else if (skull.getOwner() != null && !skull.getOwner().isEmpty()) {
 					config.set(path + "head.owner", skull.getOwner());
 					config.set(path + "head.type", "PLAYER");
 				} else {
 					Object profile = Ref.get(skull, HeadItemMaker.profileField);
 					if (profile != null) {
-
 						PropertyHandler properties = BukkitLoader.getNmsProvider().fromGameProfile(profile).getProperties().get("textures");
-
 						String value = properties == null ? null : properties.getValues();
 						if (value != null) {
 							config.set(path + "head.owner", value);
