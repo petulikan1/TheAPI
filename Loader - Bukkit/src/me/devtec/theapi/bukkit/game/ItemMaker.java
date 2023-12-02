@@ -94,8 +94,10 @@ public class ItemMaker implements Cloneable {
 	@Override
 	public ItemMaker clone() {
 		ItemMaker maker = of(material).amount(amount).damage(damage).rawDisplayName(displayName).rawLore(lore).customModel(customModel).data(data).unbreakable(unbreakable).itemFlags(itemFlags);
-		maker.enchants.putAll(enchants);
-		maker.nbt(new NBTEdit(nbt.getNBT().toString()));
+		if (enchants != null)
+			maker.enchants.putAll(enchants);
+		if (nbt != null && nbt.getNBT() != null)
+			maker.nbt(new NBTEdit(nbt.getNBT().toString()));
 		return maker;
 	}
 
@@ -227,7 +229,7 @@ public class ItemMaker implements Cloneable {
 	}
 
 	public ItemMaker lore(List<String> lore) {
-		this.lore = ColorUtils.colorize(new ArrayList<>(lore));
+		this.lore = lore == null ? null : ColorUtils.colorize(new ArrayList<>(lore));
 		return this;
 	}
 
@@ -236,7 +238,7 @@ public class ItemMaker implements Cloneable {
 	}
 
 	public ItemMaker rawLore(List<String> lore) {
-		this.lore = new ArrayList<>(lore);
+		this.lore = lore == null ? null : new ArrayList<>(lore);
 		return this;
 	}
 
@@ -268,7 +270,7 @@ public class ItemMaker implements Cloneable {
 	}
 
 	public ItemMaker itemFlags(List<String> flag) {
-		itemFlags = flag;
+		itemFlags = flag == null ? null : new ArrayList<>(flag);
 		return this;
 	}
 
@@ -770,15 +772,17 @@ public class ItemMaker implements Cloneable {
 
 		public BookItemMaker pages(List<String> pages) {
 			this.pages = new ArrayList<>();
-			for (String string : pages)
-				this.pages.add(ComponentAPI.fromString(ColorUtils.colorize(string)));
+			if (pages != null)
+				for (String string : pages)
+					this.pages.add(ComponentAPI.fromString(ColorUtils.colorize(string)));
 			return this;
 		}
 
 		public BookItemMaker rawPages(List<String> pages) {
 			this.pages = new ArrayList<>();
-			for (String string : pages)
-				this.pages.add(ComponentAPI.fromString(string));
+			if (pages != null)
+				for (String string : pages)
+					this.pages.add(ComponentAPI.fromString(string));
 			return this;
 		}
 
@@ -787,7 +791,7 @@ public class ItemMaker implements Cloneable {
 		}
 
 		public BookItemMaker pagesComp(List<Component> pages) {
-			this.pages = pages;
+			this.pages = pages == null ? null : new ArrayList<>(pages);
 			return this;
 		}
 
@@ -920,7 +924,7 @@ public class ItemMaker implements Cloneable {
 		}
 
 		public PotionItemMaker potionEffects(List<PotionEffect> effects) {
-			this.effects = new ArrayList<>(effects);
+			this.effects = effects == null ? null : new ArrayList<>(effects);
 			return this;
 		}
 
@@ -997,8 +1001,9 @@ public class ItemMaker implements Cloneable {
 
 		public ShulkerBoxItemMaker contents(ItemStack[] contents) {
 			ItemStack[] copy = new ItemStack[27];
-			for (int i = 0; i < 27 && i < contents.length; ++i)
-				copy[i] = contents[i];
+			if (contents != null)
+				for (int i = 0; i < 27 && i < contents.length; ++i)
+					copy[i] = contents[i];
 			this.contents = copy;
 			return this;
 		}
@@ -1063,10 +1068,11 @@ public class ItemMaker implements Cloneable {
 		}
 
 		public BundleItemMaker contents(List<ItemStack> contents) {
-			List<ItemStack> items = new ArrayList<>(contents.size());
-			for (ItemStack stack : contents)
-				if (stack != null && stack.getType() != Material.AIR)
-					items.add(stack);
+			List<ItemStack> items = new ArrayList<>();
+			if (contents != null)
+				for (ItemStack stack : contents)
+					if (stack != null && stack.getType() != Material.AIR)
+						items.add(stack);
 			this.contents = items;
 			return this;
 		}
@@ -1126,7 +1132,7 @@ public class ItemMaker implements Cloneable {
 		}
 
 		public BannerItemMaker patterns(List<Pattern> patterns) {
-			this.patterns = new ArrayList<>(patterns);
+			this.patterns = patterns == null ? null : new ArrayList<>(patterns);
 			return this;
 		}
 
