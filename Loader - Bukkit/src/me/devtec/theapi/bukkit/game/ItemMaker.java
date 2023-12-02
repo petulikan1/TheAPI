@@ -93,12 +93,10 @@ public class ItemMaker implements Cloneable {
 
 	@Override
 	public ItemMaker clone() {
-		try {
-			return (ItemMaker) super.clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-			return null;
-		}
+		ItemMaker maker = of(material).amount(amount).damage(damage).rawDisplayName(displayName).rawLore(lore).customModel(customModel).data(data).unbreakable(unbreakable).itemFlags(itemFlags);
+		maker.enchants.putAll(enchants);
+		maker.nbt(new NBTEdit(nbt.getNBT().toString()));
+		return maker;
 	}
 
 	public Map<String, Object> serializeToMap() {
@@ -591,6 +589,14 @@ public class ItemMaker implements Cloneable {
 		}
 
 		@Override
+		public ItemMaker clone() {
+			HeadItemMaker maker = (HeadItemMaker) super.clone();
+			maker.owner = owner;
+			maker.ownerType = ownerType;
+			return maker;
+		}
+
+		@Override
 		protected ItemMeta apply(ItemMeta meta) {
 			if (!(meta instanceof SkullMeta))
 				return super.apply(meta);
@@ -662,6 +668,13 @@ public class ItemMaker implements Cloneable {
 		@Nullable
 		public Color getColor() {
 			return color;
+		}
+
+		@Override
+		public ItemMaker clone() {
+			LeatherItemMaker maker = (LeatherItemMaker) super.clone();
+			maker.color = color;
+			return maker;
 		}
 
 		@Override
@@ -784,6 +797,12 @@ public class ItemMaker implements Cloneable {
 		}
 
 		@Override
+		public ItemMaker clone() {
+			BookItemMaker maker = (BookItemMaker) super.clone();
+			return maker.author(author).pagesComp(pages).generation(generation).title(title);
+		}
+
+		@Override
 		protected ItemMeta apply(ItemMeta meta) {
 			if (!(meta instanceof BookMeta))
 				return super.apply(meta);
@@ -901,13 +920,19 @@ public class ItemMaker implements Cloneable {
 		}
 
 		public PotionItemMaker potionEffects(List<PotionEffect> effects) {
-			this.effects = effects;
+			this.effects = new ArrayList<>(effects);
 			return this;
 		}
 
 		@Nullable
 		public List<PotionEffect> getPotionEffects() {
 			return effects;
+		}
+
+		@Override
+		public ItemMaker clone() {
+			PotionItemMaker maker = (PotionItemMaker) super.clone();
+			return maker.potionEffects(effects).color(color);
 		}
 
 		@Override
@@ -984,6 +1009,12 @@ public class ItemMaker implements Cloneable {
 		}
 
 		@Override
+		public ItemMaker clone() {
+			ShulkerBoxItemMaker maker = (ShulkerBoxItemMaker) super.clone();
+			return maker.name(name).contents(contents);
+		}
+
+		@Override
 		protected ItemMeta apply(ItemMeta meta) {
 			if (!(meta instanceof BlockStateMeta))
 				return super.apply(meta);
@@ -1046,6 +1077,12 @@ public class ItemMaker implements Cloneable {
 		}
 
 		@Override
+		public ItemMaker clone() {
+			BundleItemMaker maker = (BundleItemMaker) super.clone();
+			return maker.contents(contents);
+		}
+
+		@Override
 		protected ItemMeta apply(ItemMeta meta) {
 			if (!(meta instanceof BundleMeta))
 				return super.apply(meta);
@@ -1089,13 +1126,19 @@ public class ItemMaker implements Cloneable {
 		}
 
 		public BannerItemMaker patterns(List<Pattern> patterns) {
-			this.patterns = patterns;
+			this.patterns = new ArrayList<>(patterns);
 			return this;
 		}
 
 		@Nullable
 		public List<Pattern> getPatterns() {
 			return patterns;
+		}
+
+		@Override
+		public ItemMaker clone() {
+			BannerItemMaker maker = (BannerItemMaker) super.clone();
+			return maker.patterns(patterns);
 		}
 
 		@Override
