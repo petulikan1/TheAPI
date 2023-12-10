@@ -1820,8 +1820,10 @@ public class ItemMaker implements Cloneable {
 		}
 
 		if (serializedItem.containsKey("enchants"))
-			for (Entry<String, Object> enchant : ((Map<String, Object>) serializedItem.get("enchants")).entrySet())
-				maker.enchant(EnchantmentAPI.byName(enchant.getKey().toUpperCase()).getEnchantment(), ((Number) enchant.getValue()).intValue());
+			for (Entry<String, Object> enchant : ((Map<String, Object>) serializedItem.get("enchants")).entrySet()) {
+				EnchantmentAPI enchantment = EnchantmentAPI.byName(enchant.getKey().toUpperCase());
+				maker.enchant(enchantment == EnchantmentAPI.UKNOWN ? Enchantment.getByName(enchant.getKey().toUpperCase()) : enchantment.getEnchantment(), ((Number) enchant.getValue()).intValue());
+			}
 		return maker;
 	}
 
@@ -1969,7 +1971,8 @@ public class ItemMaker implements Cloneable {
 
 		for (String enchant : config.getStringList(path + "enchants")) {
 			String[] split = enchant.split(":");
-			maker.enchant(EnchantmentAPI.byName(split[0].toUpperCase()).getEnchantment(), split.length >= 2 ? ParseUtils.getInt(split[1]) : 1);
+			EnchantmentAPI enchantment = EnchantmentAPI.byName(split[0].toUpperCase());
+			maker.enchant(enchantment == EnchantmentAPI.UKNOWN ? Enchantment.getByName(split[0].toUpperCase()) : enchantment.getEnchantment(), split.length >= 2 ? ParseUtils.getInt(split[1]) : 1);
 		}
 		return maker;
 	}

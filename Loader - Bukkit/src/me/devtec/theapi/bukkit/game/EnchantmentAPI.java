@@ -80,7 +80,7 @@ public enum EnchantmentAPI {
 
 	PUNCH("ARROW_KNOCKBACK"), ARROW_KNOCKBACK("ARROW_KNOCKBACK"),
 
-	LOOTMOBS("LOOT_BONUS_MOBS"), LOOTBONUSMOBS("LOOT_BONUS_MOBS"), LOOT_BONUS_MOBS("LOOT_BONUS_MOBS"), LOOTING("LOOT_BONUS_MOBS");
+	LOOTMOBS("LOOT_BONUS_MOBS"), LOOTBONUSMOBS("LOOT_BONUS_MOBS"), LOOT_BONUS_MOBS("LOOT_BONUS_MOBS"), LOOTING("LOOT_BONUS_MOBS"), UKNOWN("UKNOWN", 0);
 
 	private final String bukkitName;
 	private final int version;
@@ -142,6 +142,8 @@ public enum EnchantmentAPI {
 		try {
 			return valueOf(name.toUpperCase());
 		} catch (Exception e) {
+			if (Enchantment.getByName(name.toUpperCase()) != null)
+				return UKNOWN;
 			return null;
 		}
 	}
