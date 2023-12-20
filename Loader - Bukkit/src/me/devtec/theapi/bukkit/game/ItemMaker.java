@@ -96,7 +96,7 @@ public class ItemMaker implements Cloneable {
 		ItemMaker maker = of(material).amount(amount).damage(damage).rawDisplayName(displayName).rawLore(lore).customModel(customModel).data(data).unbreakable(unbreakable).itemFlags(itemFlags);
 		if (enchants != null)
 			maker.enchants.putAll(enchants);
-		if (nbt != null && nbt.getNBT() != null)
+		if (nbt != null && nbt.getNBT() != null && !nbt.getKeys().isEmpty())
 			maker.nbt(new NBTEdit(nbt.getNBT().toString()));
 		return maker;
 	}
@@ -133,7 +133,7 @@ public class ItemMaker implements Cloneable {
 		}
 		if (itemFlags != null)
 			map.put("itemFlags", itemFlags);
-		if (nbt != null && nbt.getNBT() != null)
+		if (nbt != null && nbt.getNBT() != null && !nbt.getKeys().isEmpty())
 			map.put("nbt", nbt.getNBT().toString());
 		return map;
 	}
@@ -325,22 +325,13 @@ public class ItemMaker implements Cloneable {
 		nbtEdit.remove("base-color");
 		nbtEdit.remove("patterns");
 		nbtEdit.remove("pattern");
-		// banner
-		nbtEdit.remove("base-color");
-		nbtEdit.remove("patterns");
-		nbtEdit.remove("pattern");
 
-		if (!nbtEdit.getKeys().isEmpty())
-			nbt = nbtEdit;
-		else
-			nbt = null;
+		nbt = nbtEdit;
 		return this;
 	}
 
 	@Nullable
 	public NBTEdit getNbt() {
-		if (nbt == null)
-			return new NBTEdit(new ItemStack(material));
 		return nbt;
 	}
 
@@ -493,7 +484,7 @@ public class ItemMaker implements Cloneable {
 		hash = hash * 33 + customModel;
 		hash = hash * 33 + (unbreakable ? 1 : 0);
 		hash = hash * 33 + data;
-		if (nbt != null && nbt.getNBT() != null)
+		if (nbt != null && nbt.getNBT() != null && !nbt.getKeys().isEmpty())
 			hash = hash * 33 + nbt.getNBT().hashCode();
 		return hash;
 	}
@@ -504,7 +495,7 @@ public class ItemMaker implements Cloneable {
 		ItemStack item = data != 0 && Ref.isOlderThan(13) ? new ItemStack(material, amount, (short) 0, data) : new ItemStack(material, amount);
 		if (damage != 0)
 			item.setDurability(damage);
-		if (nbt != null)
+		if (nbt != null && !nbt.getKeys().isEmpty())
 			item = BukkitLoader.getNmsProvider().setNBT(item, nbt.getNBT());
 		if (item.getItemMeta() == null)
 			throw new IllegalArgumentException("Cannot create ItemMeta for material type " + material);
@@ -1631,10 +1622,6 @@ public class ItemMaker implements Cloneable {
 			nbtEdit.remove("pages");
 			nbtEdit.remove("resolved");
 			nbtEdit.remove("generation");
-			// banner
-			nbtEdit.remove("base-color");
-			nbtEdit.remove("patterns");
-			nbtEdit.remove("pattern");
 			// banner
 			nbtEdit.remove("base-color");
 			nbtEdit.remove("patterns");
