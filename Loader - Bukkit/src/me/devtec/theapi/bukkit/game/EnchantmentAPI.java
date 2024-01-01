@@ -1,6 +1,7 @@
 package me.devtec.theapi.bukkit.game;
 
 import java.lang.reflect.Field;
+import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -85,6 +86,11 @@ public enum EnchantmentAPI {
 	private final String bukkitName;
 	private final int version;
 	private static Field acceptingNew = Ref.field(Enchantment.class, "acceptingNew");
+	private static Field byName = Ref.field(Enchantment.class, "byName"); // All
+	private static Field byKey = Ref.field(Enchantment.class, "byKey"); // 1.13+
+	private static Field key = Ref.field(Enchantment.class, "key"); // 1.13+
+	private static Field byId = Ref.field(Enchantment.class, "byId"); // 1.12-
+	private static Field id = Ref.field(Enchantment.class, "id"); // 1.12-
 
 	EnchantmentAPI(String bukkitName) {
 		this(bukkitName, 0);
@@ -152,22 +158,40 @@ public enum EnchantmentAPI {
 	 * @apiNote Conventor Enchantment to EnchantmentAPI
 	 * @return EnchantmentAPI
 	 */
-	public static EnchantmentAPI fromEnchant(Enchantment enchant) {
-		return byName(enchant.getName());
+	public static EnchantmentAPI fromEnchant(Enchantment enchantment) {
+		return byName(enchantment.getName());
 	}
 
 	/**
 	 * @apiNote Register enchantment to the bukkit
 	 * @return boolean state of success
 	 */
-	public static boolean registerEnchantment(Enchantment e) {
+	public static boolean registerEnchantment(Enchantment enchantment) {
 		boolean registered = false;
 		Ref.set(null, acceptingNew, true);
 		try {
-			Enchantment.registerEnchantment(e);
+			Enchantment.registerEnchantment(enchantment);
 			registered = true;
 		} catch (Exception ea) {
 		}
 		return registered;
+	}
+
+	/**
+	 * @apiNote Unregister enchantment
+	 * @return boolean state of success
+	 */
+	@SuppressWarnings("unchecked")
+	public static boolean unregisterEnchantment(Enchantment enchantment) {
+		boolean unregistered = false;
+		try {
+			((Map<String, Enchantment>) Ref.get(null, byName)).remove(enchantment.getName());
+			if (Ref.isNewerThan(12))
+				unregistered = ((Map<?, ?>) Ref.get(null, byKey)).remove(Ref.get(enchantment, key)) != null;
+			else
+				unregistered = ((Map<Integer, Enchantment>) Ref.get(null, byId)).remove(Ref.get(enchantment, id)) != null;
+		} catch (Exception ea) {
+		}
+		return unregistered;
 	}
 }
