@@ -103,8 +103,8 @@ public class BukkitSelectorUtils implements SelectorUtils<CommandSender> {
 			return value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false");
 		case ENTITY_SELECTOR:
 			char first = value.charAt(0);
-			char second = value.length() > 1 ? toLowerCase(value.charAt(1)) : 0;
-			if (first == '@' && (second == 'a' || second == 'e' || second == 'r' || second == 's' || second == 'p' && value.length() == 2) || first == '*' && value.length() == 1)
+			char second = value.length() == 2 ? toLowerCase(value.charAt(1)) : 0;
+			if (first == '@' && (second == 'a' || second == 'e' || second == 'r' || second == 's' || second == 'p') || first == '*' && value.length() == 1)
 				return true;
 			// Else continue to player
 		case PLAYER:
@@ -134,6 +134,6 @@ public class BukkitSelectorUtils implements SelectorUtils<CommandSender> {
 	}
 
 	private char toLowerCase(int charAt) {
-		return (char) (charAt > 100 ? charAt + 32 : charAt);
+		return (char) (charAt <= 90 ? charAt + 32 : charAt);
 	}
 }
