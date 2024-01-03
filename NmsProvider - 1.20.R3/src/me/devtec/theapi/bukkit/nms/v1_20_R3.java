@@ -510,7 +510,7 @@ public class v1_20_R3 implements NmsProvider {
 		if (componentObject == null)
 			return Component.EMPTY_COMPONENT;
 		IChatBaseComponent component = (IChatBaseComponent) componentObject;
-		Object result = Ref.invoke(component.b(), "a");
+		Object result = Ref.invoke(component.b(), "b");
 		Component comp = new Component(result == null ? "" : (String) result);
 		ChatModifier modif = component.a();
 		if (modif.a() != null)
