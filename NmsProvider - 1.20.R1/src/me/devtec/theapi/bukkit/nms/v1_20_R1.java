@@ -51,6 +51,9 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
@@ -60,8 +63,11 @@ import me.devtec.shared.Ref;
 import me.devtec.shared.components.ClickEvent;
 import me.devtec.shared.components.Component;
 import me.devtec.shared.components.ComponentAPI;
+import me.devtec.shared.components.ComponentEntity;
+import me.devtec.shared.components.ComponentItem;
 import me.devtec.shared.components.HoverEvent;
 import me.devtec.shared.events.EventManager;
+import me.devtec.shared.json.Json;
 import me.devtec.shared.utility.ParseUtils;
 import me.devtec.theapi.bukkit.BukkitLoader;
 import me.devtec.theapi.bukkit.events.ServerListPingEvent;
@@ -88,6 +94,7 @@ import net.minecraft.network.chat.ChatHexColor;
 import net.minecraft.network.chat.ChatHoverable.EnumHoverAction;
 import net.minecraft.network.chat.ChatModifier;
 import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.network.chat.IChatBaseComponent.ChatSerializer;
 import net.minecraft.network.chat.IChatMutableComponent;
 import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
@@ -160,6 +167,7 @@ import net.minecraft.world.scores.criteria.IScoreboardCriteria.EnumScoreboardHea
 public class v1_20_R1 implements NmsProvider {
 	private static final MinecraftServer server = MinecraftServer.getServer();
 	private static final sun.misc.Unsafe unsafe = (sun.misc.Unsafe) Ref.getNulled(Ref.field(sun.misc.Unsafe.class, "theUnsafe"));
+	private Gson gson = new GsonBuilder().create();
 
 	@Override
 	public Collection<? extends Player> getOnlinePlayers() {
@@ -372,6 +380,8 @@ public class v1_20_R1 implements NmsProvider {
 	}
 
 	private IChatBaseComponent convert(Component c) {
+		if (c instanceof ComponentItem || c instanceof ComponentEntity)
+			return IChatBaseComponent.a(Json.writer().simpleWrite(c.toJsonMap()));
 		IChatMutableComponent current = IChatBaseComponent.b(c.getText());
 		ChatModifier modif = current.a();
 		if (c.getColor() != null && !c.getColor().isEmpty())
@@ -382,7 +392,18 @@ public class v1_20_R1 implements NmsProvider {
 		if (c.getClickEvent() != null)
 			modif = modif.a(new ChatClickable(EnumClickAction.a(c.getClickEvent().getAction().name().toLowerCase()), c.getClickEvent().getValue()));
 		if (c.getHoverEvent() != null)
-			modif = modif.a(EnumHoverAction.a(c.getHoverEvent().getAction().name().toLowerCase()).a((IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
+			switch (c.getHoverEvent().getAction()) {
+			case SHOW_ACHIEVEMENT:
+			case SHOW_TEXT:
+				modif = modif.a(EnumHoverAction.a(c.getHoverEvent().getAction().name().toLowerCase()).a((IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
+				break;
+			case SHOW_ENTITY:
+				modif = modif.a(EnumHoverAction.a(c.getHoverEvent().getAction().name().toLowerCase()).a(gson.toJsonTree(c.getHoverEvent().getValue().toJsonMap())));
+				break;
+			case SHOW_ITEM:
+				modif = modif.a(EnumHoverAction.a(c.getHoverEvent().getAction().name().toLowerCase()).a(gson.toJsonTree(c.getHoverEvent().getValue().toJsonMap())));
+				break;
+			}
 		modif = modif.a(c.isBold());
 		modif = modif.b(c.isItalic());
 		modif = modif.e(c.isObfuscated());
@@ -424,6 +445,10 @@ public class v1_20_R1 implements NmsProvider {
 
 	@Override
 	public Object[] toIChatBaseComponents(Component co) {
+		if (co == null)
+			return new IChatBaseComponent[] { IChatBaseComponent.b("") };
+		if (co instanceof ComponentItem || co instanceof ComponentEntity)
+			return new IChatBaseComponent[] { IChatBaseComponent.b(Json.writer().simpleWrite(co.toJsonMap())) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(IChatBaseComponent.b(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -446,6 +471,8 @@ public class v1_20_R1 implements NmsProvider {
 	public Object toIChatBaseComponent(Component co) {
 		if (co == null)
 			return IChatBaseComponent.b("");
+		if (co instanceof ComponentItem || co instanceof ComponentEntity)
+			return IChatBaseComponent.b(Json.writer().simpleWrite(co.toJsonMap()));
 		IChatMutableComponent main = IChatBaseComponent.b("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -493,7 +520,27 @@ public class v1_20_R1 implements NmsProvider {
 			comp.setClickEvent(new ClickEvent(ClickEvent.Action.valueOf(modif.h().a().name()), modif.h().b()));
 
 		if (modif.i() != null)
-			comp.setHoverEvent(new HoverEvent(HoverEvent.Action.valueOf(modif.i().a().b()), fromIChatBaseComponent(modif.i().b())));
+			switch (HoverEvent.Action.valueOf(modif.i().a().b().toUpperCase())) {
+			case SHOW_ACHIEVEMENT:
+			case SHOW_TEXT:
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, fromIChatBaseComponent(ChatSerializer.a(modif.i().b().get("contents")))));
+				break;
+			case SHOW_ENTITY: {
+				JsonObject obj = modif.i().b().get("contents").getAsJsonObject();
+				ComponentEntity compEntity = new ComponentEntity(obj.get("type").getAsString(), UUID.fromString(obj.get("id").getAsString()));
+				if (obj.has("name"))
+					compEntity.setName(fromIChatBaseComponent(ChatSerializer.a(obj.get("name"))));
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY, compEntity));
+				break;
+			}
+			case SHOW_ITEM:
+				JsonObject obj = modif.i().b().get("contents").getAsJsonObject();
+				ComponentItem compEntity = new ComponentItem(obj.get("id").getAsString(), obj.get("count").getAsInt());
+				if (obj.has("tag"))
+					compEntity.setNbt(obj.get("tag").getAsString());
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, compEntity));
+				break;
+			}
 
 		comp.setBold(modif.b());
 		comp.setItalic(modif.c());
