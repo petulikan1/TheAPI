@@ -67,6 +67,5 @@ dependencies {
 
 [![](https://badges.spiget.org/resources/downloads/Downloads-A940FB-72679.svg)](https://www.spigotmc.org/resources/theapi.72679/)
 [![](https://badges.spiget.org/resources/rating/Rating-A940FB-72679.svg)](https://www.spigotmc.org/resources/theapi.72679/)
-[![](https://app.codacy.com/project/badge/Grade/cc3d8b3c076848dc92cbbc3c074cab79)](https://www.codacy.com/gh/TheDevTec/TheAPI/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheDevTec/TheAPI&amp;utm_campaign=Badge_Grade)
-[![](https://img.shields.io/discord/579029317561090078?color=A940FB&label=Discord)](https://discord.gg/8YtfC234dA)
+[![](https://img.shields.io/discord/579029317561090078?color=A940FB&label=Discord)]([https://discord.gg/8YtfC234dA](https://discord.gg/APwYKQRxby))
 [![](https://bstats.org/signatures/bukkit/TheAPI.svg)](https://bstats.org/plugin/bukkit/TheAPI/10581)
