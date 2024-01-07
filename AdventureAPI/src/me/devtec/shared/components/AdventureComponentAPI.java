@@ -2,15 +2,13 @@ package me.devtec.shared.components;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-import me.devtec.shared.json.Json;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.api.BinaryTagHolder;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent.Action;
+import net.kyori.adventure.text.event.HoverEvent.ShowEntity;
+import net.kyori.adventure.text.event.HoverEvent.ShowItem;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -44,19 +42,16 @@ public class AdventureComponentAPI<T> implements ComponentTransformer<net.kyori.
 		sub.setStrikethrough(value.style().decorations().getOrDefault(TextDecoration.STRIKETHROUGH, State.NOT_SET) == State.TRUE);
 		sub.setUnderlined(value.style().decorations().getOrDefault(TextDecoration.UNDERLINED, State.NOT_SET) == State.TRUE);
 
-		if (value.hoverEvent() != null && value.hoverEvent().action() == Action.SHOW_TEXT)
-			sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, toComponent((net.kyori.adventure.text.Component) value.hoverEvent().value())));
-
-		// Actually unsupported
-		// if (value.hoverEvent().action() == Action.SHOW_ITEM)
-		// sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
-		// toComponent((net.kyori.adventure.text.Component)
-		// value.hoverEvent().value())));
-
-		// if (value.hoverEvent().action() == Action.SHOW_ENTITY)
-		// sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY,
-		// toComponent((net.kyori.adventure.text.Component)
-		// value.hoverEvent().value())));
+		if (value.hoverEvent() != null)
+			if (value.hoverEvent().action() == Action.SHOW_TEXT || value.hoverEvent().action() == Action.SHOW_ACHIEVEMENT)
+				sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, toComponent((net.kyori.adventure.text.Component) value.hoverEvent().value())));
+			else if (value.hoverEvent().action() == Action.SHOW_ENTITY) {
+				ShowEntity show = (ShowEntity) value.hoverEvent().value();
+				sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY, new ComponentEntity(show.type().asString(), show.id()).setName(show.name() == null ? null : convert(show.name()))));
+			} else if (value.hoverEvent().action() == Action.SHOW_ITEM) {
+				ShowItem show = (ShowItem) value.hoverEvent().value();
+				sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, new ComponentItem(show.item().asString(), show.count()).setNbt(show.nbt() == null ? null : show.nbt().string())));
+			}
 		if (value.clickEvent() != null)
 			sub.setClickEvent(new ClickEvent(ClickEvent.Action.valueOf(value.clickEvent().action().name()), value.clickEvent().value()));
 		sub.setInsertion(value.insertion());
@@ -104,7 +99,7 @@ public class AdventureComponentAPI<T> implements ComponentTransformer<net.kyori.
 
 	@Override
 	public net.kyori.adventure.text.Component fromComponent(List<Component> components) {
-		net.kyori.adventure.text.Component base = net.kyori.adventure.text.Component.text("");
+		net.kyori.adventure.text.Component base = net.kyori.adventure.text.Component.empty();
 		boolean first = true;
 		for (Component component : components)
 			if (first) {
@@ -115,24 +110,18 @@ public class AdventureComponentAPI<T> implements ComponentTransformer<net.kyori.
 		return base;
 	}
 
-	@SuppressWarnings("unchecked")
 	private net.kyori.adventure.text.event.HoverEvent<?> makeHover(HoverEvent hoverEvent) {
-		Map<String, Object> map = (Map<String, Object>) Json.reader().simpleRead(hoverEvent.getValue().getText());
-		Map<String, Object> hover = (Map<String, Object>) map.get("hoverEvent");
-
-		Object val = hover.getOrDefault("value", hover.get("contents"));
-		if (val instanceof List)
-			val = ((List<?>) val).get(0);
-		Map<String, Object> value = (Map<String, Object>) val;
-
 		switch (hoverEvent.getAction()) {
-		case SHOW_ENTITY:
-			return net.kyori.adventure.text.event.HoverEvent.showEntity(Key.key("minecraft:" + value.getOrDefault("type", "pig")),
-					UUID.fromString(value.getOrDefault("id", UUID.randomUUID().toString()) + ""),
-					value.get("name") == null ? null : this.fromComponent(ComponentAPI.fromString(value.get("name") + "")));
-		case SHOW_ITEM:
-			return net.kyori.adventure.text.event.HoverEvent.showItem(Key.key("minecraft:" + value.getOrDefault("id", "air")), (int) (double) value.getOrDefault("count", 1.0),
-					BinaryTagHolder.binaryTagHolder(Json.writer().simpleWrite(value.getOrDefault("tag", new ConcurrentHashMap<>()))));
+		case SHOW_ENTITY: {
+			ComponentEntity hover = (ComponentEntity) hoverEvent.getValue();
+			return net.kyori.adventure.text.event.HoverEvent
+					.showEntity(ShowEntity.showEntity(Key.key(hover.getType()), hover.getId(), hover.getName() == null ? null : this.fromComponent(hover.getName())));
+		}
+		case SHOW_ITEM: {
+			ComponentItem hover = (ComponentItem) hoverEvent.getValue();
+			return net.kyori.adventure.text.event.HoverEvent
+					.showItem(ShowItem.showItem(Key.key(hover.getId()), hover.getCount(), hover.getNbt() == null ? null : BinaryTagHolder.binaryTagHolder(hover.getNbt())));
+		}
 		case SHOW_TEXT:
 			return net.kyori.adventure.text.event.HoverEvent.showText(this.fromComponent(hoverEvent.getValue()));
 		default:

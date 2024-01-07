@@ -2,6 +2,7 @@ package me.devtec.shared.components;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import me.devtec.shared.Ref;
 import me.devtec.shared.Ref.ServerType;
@@ -10,6 +11,7 @@ import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.ItemTag;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class BungeeComponentAPI<T> implements ComponentTransformer<BaseComponent> {
@@ -43,9 +45,37 @@ public class BungeeComponentAPI<T> implements ComponentTransformer<BaseComponent
 		sub.setStrikethrough(value.isStrikethrough());
 		sub.setUnderlined(value.isUnderlined());
 		if (value.getHoverEvent() != null)
-			sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.valueOf(value.getHoverEvent().getAction().name()), this.toComponent(value.getHoverEvent().getValue())));
+			if (Ref.serverType().isBukkit() && !Ref.isNewerThan(15) || value.getHoverEvent().isLegacy())
+				switch (Action.valueOf(value.getHoverEvent().getAction().name())) {
+				case SHOW_ENTITY:
+					sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.SHOW_ENTITY, ComponentEntity.fromJson(BaseComponent.toLegacyText(value.getHoverEvent().getValue()))));
+					break;
+				case SHOW_ITEM:
+					sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.SHOW_ITEM, ComponentItem.fromJson(BaseComponent.toLegacyText(value.getHoverEvent().getValue()))));
+					break;
+				case SHOW_TEXT:
+					sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.SHOW_TEXT, toComponent(value.getHoverEvent().getValue())));
+					break;
+				}
+			else
+				switch (Action.valueOf(value.getHoverEvent().getAction().name())) {
+				case SHOW_ENTITY:
+					net.md_5.bungee.api.chat.hover.content.Entity entity = (net.md_5.bungee.api.chat.hover.content.Entity) value.getHoverEvent().getContents().get(0);
+					sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.SHOW_ENTITY,
+							new ComponentEntity(entity.getType(), UUID.fromString(entity.getId())).setName(entity.getName() == null ? null : toComponent(entity.getName()))));
+					break;
+				case SHOW_ITEM:
+					net.md_5.bungee.api.chat.hover.content.Item item = (net.md_5.bungee.api.chat.hover.content.Item) value.getHoverEvent().getContents().get(0);
+					sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.SHOW_ITEM,
+							new ComponentItem(item.getId(), item.getCount()).setNbt(item.getTag() == null ? null : item.getTag().getNbt())));
+					break;
+				case SHOW_TEXT:
+					sub.setHoverEvent(new me.devtec.shared.components.HoverEvent(Action.SHOW_TEXT, toComponent(value.getHoverEvent().getValue())));
+					break;
+				}
 		if (value.getClickEvent() != null)
-			sub.setClickEvent(new me.devtec.shared.components.ClickEvent(me.devtec.shared.components.ClickEvent.Action.valueOf(value.getClickEvent().getAction().name()), value.getClickEvent().getValue()));
+			sub.setClickEvent(
+					new me.devtec.shared.components.ClickEvent(me.devtec.shared.components.ClickEvent.Action.valueOf(value.getClickEvent().getAction().name()), value.getClickEvent().getValue()));
 		sub.setInsertion(value.getInsertion());
 		return sub;
 	}
@@ -81,7 +111,27 @@ public class BungeeComponentAPI<T> implements ComponentTransformer<BaseComponent
 		if (component.getClickEvent() != null)
 			sub.setClickEvent(new ClickEvent(ClickEvent.Action.valueOf(component.getClickEvent().getAction().name()), component.getClickEvent().getValue()));
 		if (component.getHoverEvent() != null)
-			sub.setHoverEvent(new HoverEvent(HoverEvent.Action.valueOf(component.getHoverEvent().getAction().name()), this.fromComponents(component.getHoverEvent().getValue())));
+			if (!Ref.serverType().isBukkit() || Ref.isNewerThan(15))
+				switch (component.getHoverEvent().getAction()) {
+				case SHOW_ENTITY: {
+					ComponentEntity hover = (ComponentEntity) component.getHoverEvent().getValue();
+					sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY,
+							new net.md_5.bungee.api.chat.hover.content.Entity(hover.getType(), hover.getId().toString(), hover.getName() == null ? null : convert(hover.getName()))));
+					break;
+				}
+				case SHOW_ITEM: {
+					ComponentItem hover = (ComponentItem) component.getHoverEvent().getValue();
+					sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
+							new net.md_5.bungee.api.chat.hover.content.Item(hover.getId(), hover.getCount(), hover.getNbt() == null ? null : ItemTag.ofNbt(hover.getNbt()))));
+					break;
+				}
+				default:
+					sub.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new net.md_5.bungee.api.chat.hover.content.Text(this.fromComponents(component.getHoverEvent().getValue()))));
+					break;
+
+				}
+			else
+				sub.setHoverEvent(new HoverEvent(HoverEvent.Action.valueOf(component.getHoverEvent().getAction().name()), this.fromComponents(component.getHoverEvent().getValue())));
 		if (Ref.serverType() == ServerType.BUNGEECORD || Ref.isNewerThan(8))
 			sub.setInsertion(component.getInsertion());
 		if (component.getFont() != null && (!Ref.serverType().isBukkit() || Ref.isNewerThan(15)))
