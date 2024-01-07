@@ -50,8 +50,11 @@ import me.devtec.shared.Ref;
 import me.devtec.shared.components.ClickEvent;
 import me.devtec.shared.components.Component;
 import me.devtec.shared.components.ComponentAPI;
+import me.devtec.shared.components.ComponentEntity;
+import me.devtec.shared.components.ComponentItem;
 import me.devtec.shared.components.HoverEvent;
 import me.devtec.shared.events.EventManager;
+import me.devtec.shared.json.Json;
 import me.devtec.shared.utility.ParseUtils;
 import me.devtec.theapi.bukkit.BukkitLoader;
 import me.devtec.theapi.bukkit.events.ServerListPingEvent;
@@ -64,6 +67,7 @@ import me.devtec.theapi.bukkit.nms.utils.InventoryUtils;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils.DestinationType;
 import me.devtec.theapi.bukkit.tablist.TabEntry;
 import me.devtec.theapi.bukkit.tablist.Tablist;
+import me.devtec.theapi.bukkit.xseries.XMaterial;
 import net.minecraft.server.v1_16_R3.BiomeManager;
 import net.minecraft.server.v1_16_R3.Block;
 import net.minecraft.server.v1_16_R3.BlockFalling;
@@ -74,6 +78,7 @@ import net.minecraft.server.v1_16_R3.ChatClickable;
 import net.minecraft.server.v1_16_R3.ChatClickable.EnumClickAction;
 import net.minecraft.server.v1_16_R3.ChatComponentText;
 import net.minecraft.server.v1_16_R3.ChatHexColor;
+import net.minecraft.server.v1_16_R3.ChatHoverable;
 import net.minecraft.server.v1_16_R3.ChatHoverable.EnumHoverAction;
 import net.minecraft.server.v1_16_R3.ChatMessageType;
 import net.minecraft.server.v1_16_R3.ChatModifier;
@@ -86,6 +91,7 @@ import net.minecraft.server.v1_16_R3.Containers;
 import net.minecraft.server.v1_16_R3.EntityHuman;
 import net.minecraft.server.v1_16_R3.EntityLiving;
 import net.minecraft.server.v1_16_R3.EntityPlayer;
+import net.minecraft.server.v1_16_R3.EntityTypes;
 import net.minecraft.server.v1_16_R3.EnumChatFormat;
 import net.minecraft.server.v1_16_R3.EnumGamemode;
 import net.minecraft.server.v1_16_R3.IBlockData;
@@ -98,6 +104,7 @@ import net.minecraft.server.v1_16_R3.ITileEntity;
 import net.minecraft.server.v1_16_R3.InventoryClickType;
 import net.minecraft.server.v1_16_R3.Item;
 import net.minecraft.server.v1_16_R3.MathHelper;
+import net.minecraft.server.v1_16_R3.MinecraftKey;
 import net.minecraft.server.v1_16_R3.MinecraftServer;
 import net.minecraft.server.v1_16_R3.MojangsonParser;
 import net.minecraft.server.v1_16_R3.NBTBase;
@@ -383,7 +390,31 @@ public class v1_16_R3 implements NmsProvider {
 		if (c.getClickEvent() != null)
 			modif = modif.setChatClickable(new ChatClickable(EnumClickAction.valueOf(c.getClickEvent().getAction().name()), c.getClickEvent().getValue()));
 		if (c.getHoverEvent() != null)
-			modif = modif.setChatHoverable(EnumHoverAction.a(c.getHoverEvent().getAction().name().toLowerCase()).a((IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
+			switch (c.getHoverEvent().getAction()) {
+			case SHOW_ENTITY:
+				try {
+					ComponentEntity compoundTag = (ComponentEntity) c.getHoverEvent().getValue();
+					IChatBaseComponent component = compoundTag.getName() == null ? null : (IChatBaseComponent) toIChatBaseComponent(compoundTag.getName());
+					EntityTypes<?> entityType = IRegistry.ENTITY_TYPE.get(new MinecraftKey(compoundTag.getType()));
+					modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_ENTITY, new ChatHoverable.b(entityType, compoundTag.getId(), component)));
+				} catch (Exception commandSyntaxException) {
+				}
+				break;
+			case SHOW_ITEM:
+				try {
+					ComponentItem compoundTag = (ComponentItem) c.getHoverEvent().getValue();
+					net.minecraft.server.v1_16_R3.ItemStack stack = new net.minecraft.server.v1_16_R3.ItemStack(
+							CraftMagicNumbers.getItem(XMaterial.matchXMaterial(compoundTag.getId()).orElse(XMaterial.AIR).parseMaterial()), compoundTag.getCount());
+					if (compoundTag.getNbt() != null)
+						stack.setTag((NBTTagCompound) parseNBT(compoundTag.getNbt()));
+					modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_ITEM, new ChatHoverable.c(stack)));
+				} catch (Exception commandSyntaxException) {
+				}
+				break;
+			default:
+				modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_TEXT, (IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
+				break;
+			}
 		modif = modif.setBold(c.isBold());
 		modif = modif.setItalic(c.isItalic());
 		modif = modif.setRandom(c.isObfuscated());
@@ -425,6 +456,10 @@ public class v1_16_R3 implements NmsProvider {
 
 	@Override
 	public Object[] toIChatBaseComponents(Component co) {
+		if (co == null)
+			return new IChatBaseComponent[] { ChatComponentText.d };
+		if (co instanceof ComponentItem || co instanceof ComponentEntity)
+			return new IChatBaseComponent[] { new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap())) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(new ChatComponentText(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -445,6 +480,10 @@ public class v1_16_R3 implements NmsProvider {
 
 	@Override
 	public Object toIChatBaseComponent(Component co) {
+		if (co == null)
+			return ChatComponentText.d;
+		if (co instanceof ComponentItem || co instanceof ComponentEntity)
+			return new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap()));
 		ChatComponentText main = new ChatComponentText("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -478,6 +517,10 @@ public class v1_16_R3 implements NmsProvider {
 		return IChatBaseComponent.ChatSerializer.a(json);
 	}
 
+	private static Field itemField = Ref.field(ChatHoverable.c.class, "a");
+	private static Field countField = Ref.field(ChatHoverable.c.class, "b");
+	private static Field tagField = Ref.field(ChatHoverable.c.class, "c");
+
 	@Override
 	public Component fromIChatBaseComponent(Object componentObject) {
 		if (componentObject == null)
@@ -502,8 +545,30 @@ public class v1_16_R3 implements NmsProvider {
 			comp.setClickEvent(new ClickEvent(ClickEvent.Action.valueOf(modif.getClickEvent().a().name()), modif.getClickEvent().b()));
 
 		if (modif.getHoverEvent() != null)
-			comp.setHoverEvent(new HoverEvent(HoverEvent.Action.valueOf(modif.getHoverEvent().a().b()), fromIChatBaseComponent(modif.getHoverEvent().b())));
-
+			switch (HoverEvent.Action.valueOf(modif.getHoverEvent().a().b().toUpperCase())) {
+			case SHOW_ENTITY: {
+				ChatHoverable.b hover = modif.getHoverEvent().a(EnumHoverAction.SHOW_ENTITY);
+				ComponentEntity compEntity = new ComponentEntity(hover.a.i().getKey(), hover.b);
+				if (hover.c != null)
+					compEntity.setName(fromIChatBaseComponent(hover.c));
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY, compEntity));
+				break;
+			}
+			case SHOW_ITEM: {
+				ChatHoverable.c hover = modif.getHoverEvent().a(EnumHoverAction.SHOW_ITEM);
+				Ref.get(hover, itemField);
+				ComponentItem compEntity = new ComponentItem(CraftMagicNumbers.getMaterial((Item) Ref.get(hover, itemField)).name(), (int) Ref.get(hover, countField));
+				Object tag = Ref.get(hover, tagField);
+				if (tag != null)
+					compEntity.setNbt(tag.toString());
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, compEntity));
+				break;
+			}
+			default:
+				IChatBaseComponent hover = modif.getHoverEvent().a(EnumHoverAction.SHOW_TEXT);
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, fromIChatBaseComponent(hover)));
+				break;
+			}
 		comp.setBold(modif.isBold());
 		comp.setItalic(modif.isItalic());
 		comp.setObfuscated(modif.isRandom());

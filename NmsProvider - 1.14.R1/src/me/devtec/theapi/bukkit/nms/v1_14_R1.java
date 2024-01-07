@@ -51,8 +51,11 @@ import me.devtec.shared.Ref;
 import me.devtec.shared.components.ClickEvent;
 import me.devtec.shared.components.Component;
 import me.devtec.shared.components.ComponentAPI;
+import me.devtec.shared.components.ComponentEntity;
+import me.devtec.shared.components.ComponentItem;
 import me.devtec.shared.components.HoverEvent;
 import me.devtec.shared.events.EventManager;
+import me.devtec.shared.json.Json;
 import me.devtec.shared.utility.ParseUtils;
 import me.devtec.theapi.bukkit.BukkitLoader;
 import me.devtec.theapi.bukkit.events.ServerListPingEvent;
@@ -386,7 +389,15 @@ public class v1_14_R1 implements NmsProvider {
 		if (c.getClickEvent() != null)
 			modif.setChatClickable(new ChatClickable(EnumClickAction.valueOf(c.getClickEvent().getAction().name()), c.getClickEvent().getValue()));
 		if (c.getHoverEvent() != null)
-			modif.setChatHoverable(new ChatHoverable(EnumHoverAction.valueOf(c.getHoverEvent().getAction().name()), (IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
+			switch (c.getHoverEvent().getAction()) {
+			case SHOW_ITEM:
+			case SHOW_ENTITY:
+				modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_ENTITY, new ChatComponentText(Json.writer().simpleWrite(c.getHoverEvent().getValue().toJsonMap()))));
+				break;
+			default:
+				modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_TEXT, (IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
+				break;
+			}
 		modif.setBold(c.isBold());
 		modif.setItalic(c.isItalic());
 		modif.setRandom(c.isObfuscated());
@@ -427,6 +438,10 @@ public class v1_14_R1 implements NmsProvider {
 
 	@Override
 	public Object[] toIChatBaseComponents(Component co) {
+		if (co == null)
+			return new IChatBaseComponent[] { empty };
+		if (co instanceof ComponentItem || co instanceof ComponentEntity)
+			return new IChatBaseComponent[] { new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap())) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(new ChatComponentText(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -447,6 +462,10 @@ public class v1_14_R1 implements NmsProvider {
 
 	@Override
 	public Object toIChatBaseComponent(Component co) {
+		if (co == null)
+			return empty;
+		if (co instanceof ComponentItem || co instanceof ComponentEntity)
+			return new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap()));
 		ChatComponentText main = new ChatComponentText("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -498,8 +517,22 @@ public class v1_14_R1 implements NmsProvider {
 			comp.setClickEvent(new ClickEvent(ClickEvent.Action.valueOf(modif.getClickEvent().a().name()), modif.getClickEvent().b()));
 
 		if (modif.getHoverEvent() != null)
-			comp.setHoverEvent(new HoverEvent(HoverEvent.Action.valueOf(modif.getHoverEvent().a().b()), fromIChatBaseComponent(modif.getHoverEvent().b())));
-
+			switch (HoverEvent.Action.valueOf(modif.getHoverEvent().a().b().toUpperCase())) {
+			case SHOW_ENTITY: {
+				ComponentEntity compEntity = ComponentEntity.fromJson(modif.getHoverEvent().b().getText());
+				if (compEntity != null)
+					comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ENTITY, ComponentItem.fromJson(modif.getHoverEvent().b().getText())));
+				break;
+			}
+			case SHOW_ITEM:
+				ComponentItem compEntity = ComponentItem.fromJson(modif.getHoverEvent().b().getText());
+				if (compEntity != null)
+					comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, ComponentItem.fromJson(modif.getHoverEvent().b().getText())));
+				break;
+			default:
+				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, fromIChatBaseComponent(modif.getHoverEvent().b())));
+				break;
+			}
 		comp.setBold(modif.isBold());
 		comp.setItalic(modif.isItalic());
 		comp.setObfuscated(modif.isRandom());
