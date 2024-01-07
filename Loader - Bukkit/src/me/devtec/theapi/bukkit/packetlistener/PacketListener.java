@@ -44,7 +44,9 @@ public abstract class PacketListener {
 	 * @see PacketListener#playOut(String, PacketContainer, ChannelContainer)
 	 */
 	@ScheduledForRemoval(inVersion = "12.0")
-	public abstract boolean playOut(String player, Object packet, Object channel);
+	public boolean playOut(String player, Object packet, Object channel) {
+		return false;
+	}
 
 	/**
 	 * 
@@ -67,7 +69,9 @@ public abstract class PacketListener {
 	 * @see PacketListener#playIn(String, PacketContainer, ChannelContainer)
 	 */
 	@ScheduledForRemoval(inVersion = "12.0")
-	public abstract boolean playIn(String player, Object packet, Object channel);
+	public boolean playIn(String player, Object packet, Object channel) {
+		return false;
+	}
 
 	/**
 	 * 
