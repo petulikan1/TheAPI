@@ -394,10 +394,6 @@ public class v1_20_R3 implements NmsProvider {
 			modif = modif.a(new ChatClickable(EnumClickAction.valueOf(c.getClickEvent().getAction().name()), c.getClickEvent().getValue()));
 		if (c.getHoverEvent() != null)
 			switch (c.getHoverEvent().getAction()) {
-			case SHOW_ACHIEVEMENT:
-			case SHOW_TEXT:
-				modif = modif.a(new ChatHoverable(EnumHoverAction.a, (IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
-				break;
 			case SHOW_ENTITY:
 				try {
 					ComponentEntity compoundTag = (ComponentEntity) c.getHoverEvent().getValue();
@@ -417,6 +413,9 @@ public class v1_20_R3 implements NmsProvider {
 					modif = modif.a(new ChatHoverable(EnumHoverAction.b, new ChatHoverable.c(stack)));
 				} catch (Exception commandSyntaxException) {
 				}
+				break;
+			default:
+				modif = modif.a(new ChatHoverable(EnumHoverAction.a, (IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
 				break;
 			}
 		modif = modif.a(c.isBold());
