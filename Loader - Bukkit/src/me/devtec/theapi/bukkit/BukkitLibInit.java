@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 
 import org.bukkit.Bukkit;
@@ -40,6 +39,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import me.devtec.shared.API;
 import me.devtec.shared.Ref;
 import me.devtec.shared.Ref.ServerType;
+import me.devtec.shared.annotations.Nullable;
 import me.devtec.shared.components.ComponentAPI;
 import me.devtec.shared.components.ComponentTransformer;
 import me.devtec.shared.dataholder.Config;
@@ -56,8 +56,8 @@ import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
+import me.devtec.shared.utility.MathUtils;
 import me.devtec.shared.utility.ParseUtils;
-import me.devtec.shared.utility.StringUtils;
 import me.devtec.theapi.bukkit.commands.hooker.BukkitCommandManager;
 import me.devtec.theapi.bukkit.commands.selectors.BukkitSelectorUtils;
 import me.devtec.theapi.bukkit.game.BlockDataStorage;
@@ -166,6 +166,8 @@ public class BukkitLibInit {
 		}
 
 	}
+
+	private static long seed = MathUtils.random.nextLong();
 
 	private static int getJavaVersion() {
 		String version = System.getProperty("java.version");
@@ -308,195 +310,149 @@ public class BukkitLibInit {
 			}
 		};
 		API.basics().load();
-		ColorUtils.rainbowSplit = Pattern.compile("(#[A-Fa-f0-9]{6}([&§][K-Ok-oRr])*|[&§][Xx]([&§][A-Fa-f0-9]){6}([&§][K-Ok-oRr])*|[&§][A-Fa-f0-9K-ORrk-oUuXx]([&§][K-Ok-oRr])*)");
-		ColorUtils.color = new ColormaticFactory() {
-			String rainbow = "c6ea9b5";
-			char[] chars = rainbow.toCharArray();
-			AtomicInteger position = new AtomicInteger(0);
+		if (Ref.isOlderThan(16))
+			ColorUtils.color = new ColormaticFactory() {
+				String rainbow = "c6ea9b5";
+				char[] chars = rainbow.toCharArray();
+				AtomicInteger position = new AtomicInteger(0);
 
-			int[][] EMPTY_ARRAY = {};
+				int[][] EMPTY_ARRAY = {};
+				char[] EMPTY_CHAR_ARRAY = {};
+				char[] RESET_CHAR_ARRAY = { '§', 'r' };
 
-			@Override
-			public String gradient(String msg, String fromHex, String toHex, List<String> protectedStrings) {
-				if (Ref.isNewerThan(15)) // Hex
-					return API.basics().gradient(msg, fromHex, toHex, protectedStrings);
+				@Override
+				public StringContainer gradient(StringContainer container, int start, int end, @Nullable String firstHex, @Nullable String secondHex, @Nullable List<String> protectedStrings) {
+					boolean inRainbow = false;
+					char[] formats = EMPTY_CHAR_ARRAY;
 
-				boolean inRainbow = false;
-				String formats = "";
+					// Skip regions
+					int[][] skipRegions = EMPTY_ARRAY;
+					byte allocated = 0;
+					int currentSkipAt = -1;
+					byte skipId = 0;
 
-				int[][] skipRegions = EMPTY_ARRAY;
-				int allocated = 0;
+					if (protectedStrings != null) {
+						for (String protect : protectedStrings) {
+							int size = protect.length();
 
-				int currentSkipAt = -1;
-				int skipId = 0;
-
-				int fixedSize = msg.length() * 2;
-				if (protectedStrings != null) {
-					for (String protect : protectedStrings) {
-						int size = protect.length();
-
-						int num = 0;
-						while (true) {
-							int position = msg.indexOf(protect, num);
-							if (position == -1)
-								break;
-							num = position + size;
-							if (allocated == 0 || allocated >= skipRegions.length - 1) {
-								int[][] copy = new int[(allocated << 1) + 1][];
-								if (allocated > 0)
-									System.arraycopy(skipRegions, 0, copy, 0, skipRegions.length);
-								skipRegions = copy;
+							int num = 0;
+							while (true) {
+								int position = container.indexOf(protect, num);
+								if (position == -1)
+									break;
+								num = position + size;
+								if (allocated == 0 || allocated >= skipRegions.length - 1) {
+									int[][] copy = new int[(allocated << 1) + 1][];
+									if (allocated > 0)
+										System.arraycopy(skipRegions, 0, copy, 0, skipRegions.length);
+									skipRegions = copy;
+								}
+								skipRegions[allocated++] = new int[] { position, size };
 							}
-							fixedSize -= size * 2;
-							skipRegions[allocated++] = new int[] { position, size };
 						}
-					}
-					if (allocated > 0)
-						currentSkipAt = skipRegions[0][0];
-				}
-
-				StringContainer builder = new StringContainer(fixedSize);
-
-				int skipForChars = 0;
-				for (int i = 0; i < msg.length(); ++i) {
-					char c = msg.charAt(i);
-					if (c == 0)
-						continue;
-
-					if (skipForChars > 0) {
-						builder.append(c);
-						--skipForChars;
-						continue;
+						if (allocated > 0)
+							currentSkipAt = skipRegions[0][0];
 					}
 
-					if (currentSkipAt == i) {
-						skipForChars = skipRegions[skipId++][1] - 1;
-						currentSkipAt = skipId == allocated ? -1 : skipRegions[skipId][0];
-						builder.append(c);
-						continue;
-					}
+					int i = start - 1;
+					for (int step = 0; step < end - start; ++step) {
+						char c = container.charAt(++i);
 
-					if (c == '&' && i + 1 < msg.length()) {
-						c = msg.charAt(++i);
-						if (c == 'u')
+						if (currentSkipAt == i) {
+							int skipForChars = skipRegions[skipId++][1] - 1;
+							currentSkipAt = skipId == allocated ? -1 : skipRegions[skipId][0];
+							i += skipForChars;
+							step += skipForChars;
+							continue;
+						}
+
+						if (c == '&' && i + 1 < container.length() && container.charAt(i + 1) == 'u') {
+							container.delete(i, i + 2);
+							--i;
 							inRainbow = true;
-						else
-							builder.append('&').append(c);
-						continue;
-					}
-					if (inRainbow && c == '§' && i + 1 < msg.length()) {
-						c = msg.charAt(++i);
-						if (isFormat(c)) {
-							if (c == 'r')
-								formats = "§r";
-							else
-								formats += "§" + c;
 							continue;
 						}
-						if (isColor(c)) {
-							inRainbow = false;
-							continue;
-						}
-						builder.append('§').append(c);
-						continue;
-					}
-					if (inRainbow)
-						if (c != ' ') {
-							if (formats.equals("§r")) {
-								builder.append(formats); // add formats
-								builder.append(generateColor()); // add random color
-								formats = "";
-							} else {
-								builder.append(generateColor()); // add random color
-								builder.append(formats); // add formats
+
+						if (inRainbow)
+							switch (c) {
+							case ' ':
+								if (formats.length == 2 && formats[1] == 'r') {
+									container.insertMultipleChars(i, formats);
+									formats = EMPTY_CHAR_ARRAY;
+									i += 2;
+									container.insert(i, generateColor());
+									i += 2;
+								}
+								continue;
+							case '§':
+								if (i + 1 < container.length()) {
+									c = container.charAt(++i);
+									++step;
+									if (isFormat(c)) {
+										if (c == 'r')
+											formats = RESET_CHAR_ARRAY;
+										else if (formats.length == 0)
+											formats = new char[] { '§', c };
+										else {
+											char[] copy = new char[formats.length + 2];
+											System.arraycopy(formats, 0, copy, 0, formats.length);
+											formats = copy;
+											formats[formats.length - 2] = '§';
+											formats[formats.length - 1] = c;
+										}
+										break;
+									}
+									if (isColor(c) || c == 'x')
+										inRainbow = false;
+									break;
+								}
+							default:
+								if (formats.length == 2 && formats[1] == 'r') {
+									container.insertMultipleChars(i, formats);
+									formats = EMPTY_CHAR_ARRAY;
+									i += 2;
+									container.insert(i, generateColor());
+									i += 2;
+								} else {
+									container.insert(i, generateColor());
+									i += 2;
+									if (formats.length != 0) {
+										container.insertMultipleChars(i, formats);
+										i += formats.length;
+									}
+								}
+								break;
 							}
-						} else if (formats.equals("§r")) {
-							builder.append(formats); // add formats
-							builder.append(generateColor()); // add random color
-							formats = "";
-						}
-					builder.append(c);
+					}
+					return container;
 				}
-				return builder.toString();
-			}
 
-			private boolean isColor(int charAt) {
-				return charAt >= 97 && charAt <= 102 || charAt >= 65 && charAt <= 70 || charAt >= 48 && charAt <= 57;
-			}
+				private boolean isColor(int charAt) {
+					return charAt >= 97 && charAt <= 102 || charAt >= 65 && charAt <= 70 || charAt >= 48 && charAt <= 57;
+				}
 
-			private boolean isFormat(int charAt) {
-				return charAt >= 107 && charAt <= 111 || charAt == 114;
-			}
+				private boolean isFormat(int charAt) {
+					return charAt >= 107 && charAt <= 111 || charAt == 114;
+				}
 
-			@Override
-			public String generateColor() {
-				if (!Ref.isNewerThan(15)) {
+				@Override
+				public String generateColor() {
 					if (position.get() == chars.length)
 						position.set(0);
-					return "§" + chars[position.getAndIncrement()];
+					return new String(new char[] { '§', chars[position.getAndIncrement()] });
 				}
-				StringContainer b = new StringContainer(7).append('#');
-				for (int i = 0; i < 6; ++i)
-					b.append(characters[StringUtils.random.nextInt(16)]);
-				return b.toString();
-			}
 
-			@Override
-			public String replaceHex(String text) {
-				if (!Ref.isNewerThan(15))
+				@Override
+				public StringContainer replaceHex(StringContainer text) {
 					return text;
-				StringContainer container = new StringContainer(text.length() + 14 * 2);
-				for (int i = 0; i < text.length(); ++i) {
-					char c = text.charAt(i);
-					if (c == '&' && i + 7 < text.length() && text.charAt(i + 1) == '#') {
-						boolean isHex = true;
-						for (int ic = 2; ic < 8; ++ic) {
-							char cn = text.charAt(i + ic);
-							if (!(cn >= 64 && cn <= 70 || cn >= 97 && cn <= 102 || cn >= 48 && cn <= 57)) {
-								isHex = false;
-								break;
-							}
-						}
-						if (isHex) {
-							container.append('§').append('x');
-							for (int ic = 2; ic < 8; ++ic) {
-								char cn = text.charAt(i + ic);
-								container.append('§').append(cn);
-							}
-							i += 7;
-							continue;
-						}
-					} else if (c == '#' && i + 6 < text.length()) {
-						boolean isHex = true;
-						for (int ic = 1; ic < 7; ++ic) {
-							char cn = text.charAt(i + ic);
-							if (!(cn >= 64 && cn <= 70 || cn >= 97 && cn <= 102 || cn >= 48 && cn <= 57)) {
-								isHex = false;
-								break;
-							}
-						}
-						if (isHex) {
-							container.append('§').append('x');
-							for (int ic = 1; ic < 7; ++ic) {
-								char cn = text.charAt(i + ic);
-								container.append('§').append(cn);
-							}
-							i += 6;
-							continue;
-						}
-					}
-					container.append(c);
 				}
-				return container.toString();
-			}
 
-			@Override
-			public String rainbow(String msg, String fromHex, String toHex, List<String> protectedStrings) {
-				if (Ref.isNewerThan(15)) // Hex
-					return API.basics().rainbow(msg, fromHex, toHex, protectedStrings);
-				return gradient(msg, null, null, protectedStrings);
-			}
-		};
+				@Override
+				public StringContainer rainbow(StringContainer container, int start, int end, @Nullable String firstHex, @Nullable String secondHex, @Nullable List<String> protectedStrings) {
+					gradient(container, start, end, null, null, protectedStrings);
+					return container;
+				}
+			};
 	}
 
 	private static void registerWriterAndReaders() {

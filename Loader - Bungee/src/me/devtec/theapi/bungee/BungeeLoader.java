@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import javax.tools.ToolProvider;
 
@@ -26,7 +25,6 @@ import me.devtec.shared.json.modern.ModernJsonWriter;
 import me.devtec.shared.mcmetrics.GatheringInfoManager;
 import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.utility.ColorUtils;
-import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
 import me.devtec.theapi.bungee.commands.hooker.BungeeCommandManager;
 import me.devtec.theapi.bungee.commands.selectors.BungeeSelectorUtils;
@@ -182,9 +180,5 @@ public class BungeeLoader extends Plugin implements Listener {
 			}
 		};
 		API.basics().load();
-		ColorUtils.rainbowSplit = Pattern.compile("(#[A-Fa-f0-9]{6}([&§][K-Ok-oRr])*|[&§][Xx]([&§][A-Fa-f0-9]){6}([&§][K-Ok-oRr])*|[&§][A-Fa-f0-9K-ORrk-oUuXx]([&§][K-Ok-oRr])*)");
-		ColorUtils.color = new ColormaticFactory() {
-			// Defaults
-		};
 	}
 }
