@@ -56,7 +56,6 @@ import me.devtec.shared.mcmetrics.Metrics;
 import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
-import me.devtec.shared.utility.MathUtils;
 import me.devtec.shared.utility.ParseUtils;
 import me.devtec.theapi.bukkit.commands.hooker.BukkitCommandManager;
 import me.devtec.theapi.bukkit.commands.selectors.BukkitSelectorUtils;
@@ -166,8 +165,6 @@ public class BukkitLibInit {
 		}
 
 	}
-
-	private static long seed = MathUtils.random.nextLong();
 
 	private static int getJavaVersion() {
 		String version = System.getProperty("java.version");
