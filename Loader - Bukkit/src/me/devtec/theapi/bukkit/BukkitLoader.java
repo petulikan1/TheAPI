@@ -275,7 +275,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		console.sendMessage(ColorUtils.colorize("&7> &dNmsProvider&7: " + (nmsProvider == null ? "&cNot provided &7(&e" + Ref.serverVersion() + "&7)" : "&e" + nmsProvider.getProviderName())));
 		console.sendMessage(ColorUtils.colorize("&7> &dServer type&7: &e" + Ref.serverType()));
 		console.sendMessage(ColorUtils.colorize("&7>"));
-		console.sendMessage(ColorUtils.colorize("&7> &dSupport&7: &ehttps://discord.gg/pZsDpKXFDf"));
+		console.sendMessage(ColorUtils.colorize("&7> &dSupport&7: &ehttps://discord.gg/APwYKQRxby"));
 		console.sendMessage(ColorUtils.colorize("&7>"));
 		if (nmsProvider == null) {
 			console.sendMessage(ColorUtils.colorize("&7>"));
