@@ -55,6 +55,8 @@ import me.devtec.theapi.bukkit.game.resourcepack.ResourcePackResult;
 import me.devtec.theapi.bukkit.gui.AnvilGUI;
 import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.nms.NmsProvider;
+import me.devtec.theapi.bukkit.packetlistener.ChannelContainer;
+import me.devtec.theapi.bukkit.packetlistener.PacketContainer;
 import me.devtec.theapi.bukkit.packetlistener.PacketHandler;
 import me.devtec.theapi.bukkit.packetlistener.PacketHandlerModern;
 import me.devtec.theapi.bukkit.packetlistener.PacketListener;
@@ -172,18 +174,24 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		new PacketListener() {
 
 			@Override
-			public boolean playOut(String nick, Object packet, Object channel) {
+			public void playOut(String nick, PacketContainer packetContainer, ChannelContainer channel) {
+				if (packetContainer.isCancelled())
+					return;
+
+				Object packet = packetContainer.getPacket();
+
 				if (packet.getClass() == serverPing) {
 					if (ServerListPingEvent.getHandlerList().isEmpty())
-						return false; // Do not process if event isn't used by any plugin
-					return nmsProvider.processServerListPing(nick, channel, packet);
+						return; // Do not process if event isn't used by any plugin
+					if (nmsProvider.processServerListPing(nick, channel.getChannel(), packet))
+						packetContainer.setCancelled(true);
+					return;
 				}
 				if (packet.getClass() == playerInfo) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player != null)
-						nmsProvider.processPlayerInfo(player, channel, packet, Tablist.of(player));
+						nmsProvider.processPlayerInfo(player, channel.getChannel(), packet, Tablist.of(player));
 				}
-				return false;
 			}
 
 			public boolean isAllowedChatCharacter(char var0) {
@@ -201,50 +209,54 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			}
 
 			@Override
-			public boolean playIn(String nick, Object packet, Object channel) {
-				if (nick == null)
-					return false; // NPC
+			public void playIn(String nick, PacketContainer packetContainer, ChannelContainer channel) {
+				if (nick == null || packetContainer.isCancelled())
+					return;
+
+				Object packet = packetContainer.getPacket();
+
 				// ResourcePackAPI
 				if (packet.getClass() == BukkitLoader.resource) {
 					Player player = Bukkit.getPlayer(nick);
 					ResourcePackHandler handler;
 					if (player == null || (handler = resourcePackHandler.remove(player.getUniqueId())) == null)
-						return false;
+						return;
 					handler.call(player, ResourcePackResult.valueOf(Ref.isNewerThan(16) ? getLegacyNameOf(Ref.get(packet, Ref.isNewerThan(16) ? "a" : "status").toString())
 							: Ref.get(packet, Ref.isNewerThan(16) ? "a" : "status").toString()));
-					return false;
+					return;
 				}
 				// GUIS
 				if (packet.getClass() == BukkitLoader.itemname) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player == null)
-						return false;
+						return;
 					HolderGUI gui = BukkitLoader.this.gui.get(player.getUniqueId());
 					if (gui instanceof AnvilGUI) {
 						BukkitLoader.nmsProvider.postToMainThread(() -> {
 							((AnvilGUI) gui).setRepairText(buildText(Ref.get(packet, "a") + ""));
 						});
-						return true;
+						packetContainer.setCancelled(true);
 					}
+					return;
 				}
 				if (packet.getClass() == BukkitLoader.close) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player == null)
-						return false;
+						return;
 					HolderGUI gui = BukkitLoader.this.gui.remove(player.getUniqueId());
 					if (gui == null)
-						return false;
+						return;
 					gui.closeWithoutPacket(player);
-					return true;
+					packetContainer.setCancelled(true);
+					return;
 				}
 				if (packet.getClass() == BukkitLoader.click) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player == null)
-						return false;
+						return;
 					HolderGUI gui = BukkitLoader.this.gui.get(player.getUniqueId());
-					return gui == null ? false : BukkitLoader.nmsProvider.processInvClickPacket(player, gui, packet);
+					packetContainer.setCancelled(gui == null ? false : BukkitLoader.nmsProvider.processInvClickPacket(player, gui, packet));
 				}
-				return false;
 			}
 
 			private String getLegacyNameOf(String string) {
