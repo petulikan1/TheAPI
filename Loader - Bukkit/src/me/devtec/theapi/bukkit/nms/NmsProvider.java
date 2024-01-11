@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import me.devtec.shared.annotations.Comment;
 import me.devtec.shared.components.Component;
 import me.devtec.shared.components.ComponentAPI;
 import me.devtec.theapi.bukkit.game.BlockDataStorage;
@@ -359,8 +360,10 @@ public interface NmsProvider {
 
 	public String getAnvilRenameText(Object anvil);
 
+	@Comment(comment = "Returns true if event is cancelled")
 	public boolean processInvClickPacket(Player player, HolderGUI gui, Object packet);
 
+	@Comment(comment = "Returns true if packet should be cancelled")
 	public boolean processServerListPing(String player, Object channel, Object packet);
 
 	public void processPlayerInfo(Player player, Object channel, Object packet, Tablist tablist);
