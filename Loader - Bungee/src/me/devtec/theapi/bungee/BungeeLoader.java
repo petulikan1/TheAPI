@@ -67,10 +67,6 @@ public class BungeeLoader extends Plugin implements Listener {
 		console.sendMessage((BaseComponent) ComponentAPI.bungee().fromString(ColorUtils.colorize("&7>")));
 		console.sendMessage((BaseComponent) ComponentAPI.bungee().fromString(ColorUtils.colorize("&7> &dSupport&7: &ehttps://discord.gg/pZsDpKXFDf")));
 		console.sendMessage((BaseComponent) ComponentAPI.bungee().fromString(ColorUtils.colorize("&7>")));
-		if (Json.reader().toString().equals("CustomJsonReader") || Json.writer().toString().equals("CustomJsonWriter")) {
-			console.sendMessage((BaseComponent) ComponentAPI.bungee().fromString(ColorUtils.colorize("&7>")));
-			console.sendMessage((BaseComponent) ComponentAPI.bungee().fromString(ColorUtils.colorize("&7> &cWarning! &eUsing experimental Json reader & writer.")));
-		}
 	}
 
 	@Override

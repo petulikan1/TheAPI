@@ -80,10 +80,6 @@ public class VelocityLoader {
 		console.sendMessage((Component) ComponentAPI.adventure().fromString(ColorUtils.colorize("&7>")));
 		console.sendMessage((Component) ComponentAPI.adventure().fromString(ColorUtils.colorize("&7> &dSupport&7: &ehttps://discord.gg/pZsDpKXFDf")));
 		console.sendMessage((Component) ComponentAPI.adventure().fromString(ColorUtils.colorize("&7>")));
-		if (Json.reader().toString().equals("CustomJsonReader") || Json.writer().toString().equals("CustomJsonWriter")) {
-			console.sendMessage((Component) ComponentAPI.adventure().fromString(ColorUtils.colorize("&7>")));
-			console.sendMessage((Component) ComponentAPI.adventure().fromString(ColorUtils.colorize("&7> &cWarning! &eUsing experimental Json reader & writer.")));
-		}
 	}
 
 	@Subscribe
