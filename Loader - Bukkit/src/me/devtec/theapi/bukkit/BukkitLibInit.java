@@ -235,7 +235,7 @@ public class BukkitLibInit {
 				ComponentAPI.registerTransformer("ADVENTURE", (ComponentTransformer<?>) Ref.newInstanceByClass(Ref.getClass("me.devtec.shared.components.AdventureComponentAPI")));
 		}
 		Config config = new Config("plugins/TheAPI/config.yml");
-		if (!config.getString("default-json-handler", "Guava").equalsIgnoreCase("TheAPI"))
+		if (!config.getString("default-json-handler", "TheAPI").equalsIgnoreCase("TheAPI"))
 			if (Ref.isNewerThan(7))
 				Json.init(new ModernJsonReader(), new ModernJsonWriter()); // Modern version of Guava
 			else

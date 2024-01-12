@@ -155,7 +155,7 @@ public class VelocityLoader {
 
 		ComponentAPI.registerTransformer("ADVENTURE", new AdventureComponentAPI<>());
 		Config config = new Config("plugins/TheAPI/config.yml");
-		if (!config.getString("default-json-handler", "Guava").equalsIgnoreCase("TheAPI"))
+		if (!config.getString("default-json-handler", "TheAPI").equalsIgnoreCase("TheAPI"))
 			Json.init(new ModernJsonReader(), new ModernJsonWriter()); // Modern version of Guava
 		// Commands api
 		API.commandsRegister = new VelocityCommandManager();
