@@ -366,6 +366,7 @@ public class BukkitLibInit {
 						if (c == '&' && i + 1 < container.length() && container.charAt(i + 1) == 'u') {
 							container.delete(i, i + 2);
 							--i;
+							++step;
 							inRainbow = true;
 							continue;
 						}
@@ -386,6 +387,8 @@ public class BukkitLibInit {
 									c = container.charAt(++i);
 									++step;
 									if (isFormat(c)) {
+										container.delete(i - 1, i + 1);
+										i -= 2;
 										if (c == 'r')
 											formats = RESET_CHAR_ARRAY;
 										else if (formats.length == 0)
@@ -399,7 +402,7 @@ public class BukkitLibInit {
 										}
 										break;
 									}
-									if (isColor(c) || c == 'x')
+									if (isColor(c))
 										inRainbow = false;
 									break;
 								}
