@@ -12,7 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import me.devtec.theapi.bukkit.BukkitLoader;
+import me.devtec.shared.Pair;
 import me.devtec.theapi.bukkit.gui.GUI.ClickType;
 import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.gui.ItemGUI;
@@ -20,32 +20,31 @@ import me.devtec.theapi.bukkit.gui.ItemGUI;
 public class InventoryUtils {
 
 	public enum DestinationType {
-		PLAYER_INV_CUSTOM_INV, CUSTOM_INV, PLAYER_INV_ANVIL;
+		GUI, PLAYER, PLAYER_FROM_ANVIL;
 	}
 
 	/**
 	 * @apiNote Modify ItemStacks in the "contents" field and then return map of
 	 *          modified slots
 	 **/
-	public static Map<Integer, ItemStack> shift(int clickedSlot, @Nullable Player whoShift, @Nullable HolderGUI holder, @Nullable ClickType clickType, DestinationType type, List<Integer> ignoredSlots,
+	public static Pair shift(int clickedSlot, @Nullable Player whoShift, @Nullable HolderGUI holder, @Nullable ClickType clickType, DestinationType type, List<Integer> ignoredSlots,
 			ItemStack[] contents, ItemStack shiftItem) {
 		if (shiftItem == null || shiftItem.getType() == Material.AIR)
-			return Collections.emptyMap();
+			return Pair.of(shiftItem.getAmount(), Collections.emptyMap());
 		List<Integer> ignoreSlots = ignoredSlots == null ? Collections.emptyList() : ignoredSlots;
 		Map<Integer, ItemStack> modifiedSlots = new HashMap<>();
 		List<Integer> corruptedSlots = new ArrayList<>();
 		int total = shiftItem.getAmount();
-		int state = BukkitLoader.getNmsProvider().getContainerStateId(holder.getContainer(whoShift));
 		for (int slot = 0; slot < contents.length; ++slot) {
 			ItemStack i = contents[slot];
 			if (i == null || i.getType() == Material.AIR || i.getAmount() >= i.getMaxStackSize())
 				continue;
-			if (type == DestinationType.CUSTOM_INV && ignoreSlots.contains(slot)) {
+			if (type == DestinationType.GUI && ignoreSlots.contains(slot)) {
 				corruptedSlots.add(slot);
 				continue;
 			}
-			if (i.getAmount() < i.getMaxStackSize() && i.getType() == shiftItem.getType() && i.getItemMeta().equals(shiftItem.getItemMeta())) {
-				if (holder != null && whoShift != null && clickType != null && holder.onInteractItem(whoShift, i, i, clickType, slot, type == DestinationType.CUSTOM_INV)) {
+			if (i.getAmount() < i.getMaxStackSize() && equals(i, shiftItem)) {
+				if (holder != null && whoShift != null && clickType != null && holder.onInteractItem(whoShift, i, i, clickType, slot, type == DestinationType.GUI)) {
 					corruptedSlots.add(slot);
 					continue;
 				}
@@ -61,15 +60,11 @@ public class InventoryUtils {
 				i.setAmount(size);
 				modifiedSlots.put(slot, i);
 				if (holder != null && !modifiedSlots.isEmpty())
-					holder.onMultipleIteract(whoShift, type == DestinationType.CUSTOM_INV ? modifiedSlots : Collections.emptyMap(),
-							type == DestinationType.CUSTOM_INV ? Collections.emptyMap() : modifiedSlots);
-				for (int s : corruptedSlots)
-					BukkitLoader.getPacketHandler().send(whoShift, BukkitLoader.getNmsProvider().packetSetSlot(BukkitLoader.getNmsProvider().getContainerId(holder.getContainer(whoShift)), s, state,
-							BukkitLoader.getNmsProvider().getSlotItem(holder.getContainer(whoShift), s)));
-				return modifiedSlots;
+					holder.onMultipleIteract(whoShift, type == DestinationType.GUI ? modifiedSlots : Collections.emptyMap(), type == DestinationType.GUI ? Collections.emptyMap() : modifiedSlots);
+				return Pair.of(total, modifiedSlots);
 			}
 		}
-		int firstEmpty = InventoryUtils.findFirstEmpty(whoShift, holder, clickType, corruptedSlots, type, ignoreSlots, contents);
+		int firstEmpty = InventoryUtils.findFirstEmpty(whoShift, holder, clickType, corruptedSlots, type, ignoreSlots, contents, shiftItem);
 		if (firstEmpty != -1) {
 			contents[firstEmpty] = shiftItem;
 			total = 0;
@@ -79,39 +74,19 @@ public class InventoryUtils {
 		if (total != 0 && total == shiftItem.getAmount())
 			corruptedSlots.add(clickedSlot);
 		if (holder != null && !modifiedSlots.isEmpty())
-			holder.onMultipleIteract(whoShift, type == DestinationType.CUSTOM_INV ? modifiedSlots : Collections.emptyMap(),
-					type == DestinationType.CUSTOM_INV ? Collections.emptyMap() : modifiedSlots);
-		for (int slot : corruptedSlots)
-			BukkitLoader.getPacketHandler().send(whoShift, BukkitLoader.getNmsProvider().packetSetSlot(BukkitLoader.getNmsProvider().getContainerId(holder.getContainer(whoShift)), slot, state,
-					BukkitLoader.getNmsProvider().getSlotItem(holder.getContainer(whoShift), slot)));
-		if (total != 0)
-			modifiedSlots.put(-1, shiftItem); // self
-		return modifiedSlots;
+			holder.onMultipleIteract(whoShift, type == DestinationType.GUI ? modifiedSlots : Collections.emptyMap(), type == DestinationType.GUI ? Collections.emptyMap() : modifiedSlots);
+		return Pair.of(total, modifiedSlots);
 	}
 
 	/**
 	 * @apiNote Find first empty slot in the "contents" field and then return empty
-	 *          slot (air/null slot)
+	 *          slot (air/null/same item slot)
 	 **/
 	public static int findFirstEmpty(@Nullable Player whoShift, @Nullable HolderGUI holder, @Nullable ClickType clickType, List<Integer> corruptedSlots, DestinationType type,
-			List<Integer> ignoredSlots, ItemStack[] contents) {
+			List<Integer> ignoredSlots, ItemStack[] contents, ItemStack shiftItem) {
 		List<Integer> ignoreSlots = ignoredSlots == null ? Collections.emptyList() : ignoredSlots;
 		switch (type) {
-		case PLAYER_INV_ANVIL:
-			for (int i = 9; i < contents.length - 1; ++i) {
-				if (ignoreSlots.contains(i))
-					continue;
-				if (contents[i] == null || contents[i].getType() == Material.AIR)
-					return i;
-			}
-			for (int i = 0; i < 9; ++i) {
-				if (ignoreSlots.contains(i))
-					continue;
-				if (contents[i] == null || contents[i].getType() == Material.AIR)
-					return i;
-			}
-			return -1;
-		case CUSTOM_INV:
+		case GUI:
 			int slot = 0;
 			for (ItemStack i : contents) {
 				if (ignoreSlots.contains(slot++)) {
@@ -127,7 +102,7 @@ public class InventoryUtils {
 				}
 			}
 			return -1;
-		case PLAYER_INV_CUSTOM_INV:
+		case PLAYER:
 			for (int i = 8; i > -1; --i) {
 				if (ignoreSlots.contains(i))
 					continue;
@@ -140,8 +115,27 @@ public class InventoryUtils {
 				if (contents[i] == null || contents[i].getType() == Material.AIR)
 					return i;
 			}
+			return -1;
+
+		case PLAYER_FROM_ANVIL:
+			for (int i = 9; i < contents.length - 1; ++i) {
+				if (ignoreSlots.contains(i))
+					continue;
+				if (contents[i] == null || contents[i].getType() == Material.AIR)
+					return i;
+			}
+			for (int i = 0; i < 9; ++i) {
+				if (ignoreSlots.contains(i))
+					continue;
+				if (contents[i] == null || contents[i].getType() == Material.AIR)
+					return i;
+			}
 		}
 		return -1;
+	}
+
+	private static boolean equals(ItemStack item, ItemStack second) {
+		return item.getType() == second.getType() && item.hasItemMeta() == second.hasItemMeta() && (item.hasItemMeta() ? item.getItemMeta().equals(second.getItemMeta()) : true);
 	}
 
 	/**

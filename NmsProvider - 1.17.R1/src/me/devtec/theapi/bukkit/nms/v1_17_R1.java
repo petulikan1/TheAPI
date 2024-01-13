@@ -45,6 +45,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
 import io.netty.channel.Channel;
+import me.devtec.shared.Pair;
 import me.devtec.shared.Ref;
 import me.devtec.shared.components.ClickEvent;
 import me.devtec.shared.components.Component;
@@ -938,6 +939,7 @@ public class v1_17_R1 implements NmsProvider {
 				for (ItemStack stack : inv.getContents())
 					container.getSlot(slot++).set((net.minecraft.world.item.ItemStack) asNMSItem(stack));
 			});
+			return container;
 		}
 		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
 	}
@@ -1038,7 +1040,7 @@ public class v1_17_R1 implements NmsProvider {
 			break;
 		}
 
-		if ((!(gui instanceof AnvilGUI) || slot != 2) && oldItem.getType() == Material.AIR && newItem.getType() == Material.AIR)
+		if (oldItem.getType() == Material.AIR && newItem.getType() == Material.AIR)
 			return true;
 
 		boolean cancel = false;
@@ -1090,27 +1092,47 @@ public class v1_17_R1 implements NmsProvider {
 		switch (type) {
 		case b: {
 			ItemStack[] contents = slot < gui.size() ? player.getInventory().getStorageContents() : gui.getInventory().getStorageContents();
-			Collection<Integer> modified = slot < gui.size()
-					? InventoryUtils.shift(slot, player, gui, clickType, gui instanceof AnvilGUI ? DestinationType.PLAYER_INV_ANVIL : DestinationType.PLAYER_INV_CUSTOM_INV, null, contents, oldItem)
-							.keySet()
-					: InventoryUtils.shift(slot, player, gui, clickType, DestinationType.CUSTOM_INV, gui.getNotInterableSlots(player), contents, oldItem).keySet();
+			boolean interactWithResultSlot = false;
+			if (gui instanceof AnvilGUI && slot < gui.size() && slot == 2)
+				if (c.getSlot(2).isAllowed(nPlayer))
+					interactWithResultSlot = true;
+				else
+					return;
+			Pair result = slot < gui.size()
+					? InventoryUtils.shift(slot, player, gui, clickType, gui instanceof AnvilGUI && slot != 2 ? DestinationType.PLAYER_FROM_ANVIL : DestinationType.PLAYER, null, contents, oldItem)
+					: InventoryUtils.shift(slot, player, gui, clickType, DestinationType.GUI, gui.getNotInterableSlots(player), contents, oldItem);
+			@SuppressWarnings("unchecked")
+			Map<Integer, ItemStack> modified = (Map<Integer, ItemStack>) result.getValue();
+			int remaining = (int) result.getKey();
+
 			if (!modified.isEmpty())
 				if (slot < gui.size()) {
-					boolean canRemove = !modified.contains(-1);
-					player.getInventory().setStorageContents(contents);
-					if (canRemove)
-						gui.remove(gameSlot);
-					else
-						gui.getInventory().setItem(gameSlot, newItem);
+					for (Entry<Integer, ItemStack> modif : modified.entrySet())
+						nPlayer.getInventory().setItem(modif.getKey(), (net.minecraft.world.item.ItemStack) asNMSItem(modif.getValue()));
+					if (remaining == 0) {
+						c.getSlot(gameSlot).set((net.minecraft.world.item.ItemStack) asNMSItem(null));
+						if (interactWithResultSlot) {
+							c.getSlot(0).set((net.minecraft.world.item.ItemStack) asNMSItem(null));
+							c.getSlot(1).set((net.minecraft.world.item.ItemStack) asNMSItem(null));
+						}
+					} else {
+						newItem.setAmount(remaining);
+						c.getSlot(gameSlot).set((net.minecraft.world.item.ItemStack) asNMSItem(newItem));
+					}
 				} else {
-					boolean canRemove = !modified.contains(-1);
+					for (Entry<Integer, ItemStack> modif : modified.entrySet())
+						c.getSlot(modif.getKey()).set((net.minecraft.world.item.ItemStack) asNMSItem(modif.getValue())); // Visual & Nms side
+					// Plugin & Bukkit side
 					gui.getInventory().setStorageContents(contents);
-					if (canRemove)
-						player.getInventory().setItem(gameSlot, null);
-					else
-						player.getInventory().setItem(gameSlot, newItem);
+					if (remaining == 0)
+						nPlayer.getInventory().setItem(gameSlot, (net.minecraft.world.item.ItemStack) asNMSItem(null));
+					else {
+						newItem.setAmount(remaining);
+						nPlayer.getInventory().setItem(gameSlot, (net.minecraft.world.item.ItemStack) asNMSItem(newItem));
+					}
 				}
-			break;
+			c.i();
+			return;
 		}
 		default:
 			processClick(gui, gui.getNotInterableSlots(player), c, slot, mouseClick, type, nPlayer);
