@@ -65,7 +65,7 @@ public class ItemMaker implements Cloneable {
 	static Object hdbApi;
 	static int HDB_TYPE;
 	static {
-		if (Ref.getClass("me.arcaniax.hdb.api.HeadDatabaseAPI.HeadDatabaseAPI") != null) {
+		if (Ref.getClass("me.arcaniax.hdb.api.HeadDatabaseAPI") != null) {
 			hdbApi = new HeadDatabaseAPI();
 			HDB_TYPE = 1; // paid
 		}
