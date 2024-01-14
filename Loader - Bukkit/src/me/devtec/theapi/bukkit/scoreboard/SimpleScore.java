@@ -18,7 +18,7 @@ public class SimpleScore {
 	private final List<String> lines = new ArrayList<>();
 
 	public SimpleScore addLine(String line) {
-		this.lines.add(line);
+		lines.add(line);
 		return this;
 	}
 
@@ -28,27 +28,27 @@ public class SimpleScore {
 	}
 
 	public SimpleScore setTitle(String title) {
-		this.name = title;
+		name = title;
 		return this;
 	}
 
 	public void send(Player... players) {
 		for (Player a : players) {
-			ScoreboardAPI sb = this.getOrCreate(a);
-			sb.setTitle(this.name);
+			ScoreboardAPI sb = getOrCreate(a);
+			sb.setTitle(name);
 			if (!Ref.isNewerThan(7)) {
-				Collections.reverse(this.lines);
-				if (this.lines.size() > 15)
-					for (int i = 15; i < this.lines.size(); ++i)
-						this.lines.remove(i);
+				Collections.reverse(lines);
+				if (lines.size() > 15)
+					for (int i = 15; i < lines.size(); ++i)
+						lines.remove(i);
 			}
-			if (sb.getLines().size() > this.lines.size())
-				sb.removeUpperLines(this.lines.size() - 1);
+			if (sb.getLines().size() > lines.size())
+				sb.removeUpperLines(lines.size() - 1);
 			int i = 0;
-			for (String line : this.lines)
+			for (String line : lines)
 				sb.setLine(++i, line);
 		}
-		this.lines.clear();
+		lines.clear();
 	}
 
 	private ScoreboardAPI getOrCreate(Player player) {

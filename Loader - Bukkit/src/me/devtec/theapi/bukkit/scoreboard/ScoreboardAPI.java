@@ -1,7 +1,7 @@
 package me.devtec.theapi.bukkit.scoreboard;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -131,13 +131,15 @@ public class ScoreboardAPI {
 	}
 
 	public void removeUpperLines(int line) {
-		for (Entry<Integer, Team> lineName : new HashSet<>(data.entrySet()))
-			if (lineName.getKey() > line) {
-				Team team = lineName.getValue();
-				removeTeam(p, team.currentPlayer, team.name);
-				BukkitLoader.getPacketHandler().send(p, BukkitLoader.getNmsProvider().packetScoreboardScore(Action.REMOVE, sbname, team.currentPlayer, 0));
-				data.remove(line);
+		Iterator<Entry<Integer, Team>> itr = data.entrySet().iterator();
+		while (itr.hasNext()) {
+			Entry<Integer, Team> entry = itr.next();
+			if (entry.getKey() >= line) {
+				itr.remove();
+				removeTeam(p, entry.getValue().currentPlayer, entry.getValue().name);
+				BukkitLoader.getPacketHandler().send(p, BukkitLoader.getNmsProvider().packetScoreboardScore(Action.REMOVE, sbname, entry.getValue().currentPlayer, 0));
 			}
+		}
 	}
 
 	public String getLine(int line) {
