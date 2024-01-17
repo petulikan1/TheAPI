@@ -67,8 +67,6 @@ import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.nms.GameProfileHandler.PropertyHandler;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils.DestinationType;
-import me.devtec.theapi.bukkit.tablist.TabEntry;
-import me.devtec.theapi.bukkit.tablist.Tablist;
 import net.minecraft.server.v1_14_R1.Block;
 import net.minecraft.server.v1_14_R1.BlockFalling;
 import net.minecraft.server.v1_14_R1.BlockPosition;
@@ -1482,36 +1480,6 @@ public class v1_14_R1 implements NmsProvider {
 		if (event.getFalvicon() != null)
 			ping.setFavicon(event.getFalvicon());
 		return false;
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public void processPlayerInfo(Player player, Object channel, Object packet, Tablist tablist) {
-		for (Object data : (List<Object>) Ref.get(packet, playerInfo)) {
-			UUID id = ((GameProfile) Ref.get(data, "d")).getId();
-			if (id.equals(player.getUniqueId())) {
-				if (tablist.isGameProfileModified())
-					Ref.set(data, "d", toGameProfile(tablist.getGameProfile()));
-				if (tablist.getLatency().isPresent())
-					Ref.set(data, "b", tablist.getLatency().get());
-				if (tablist.getGameMode().isPresent())
-					Ref.set(data, "c", EnumGamemode.valueOf(tablist.getGameMode().get().name()));
-				if (tablist.getPlayerListName().isPresent())
-					Ref.set(data, "e", toIChatBaseComponent(tablist.getPlayerListName().get()));
-			} else {
-				TabEntry entry = tablist.getEntryById(id);
-				if (entry == null)
-					continue; // not registered yet / removed from entries, skip
-				if (entry.isGameProfileModified())
-					Ref.set(data, "d", toGameProfile(entry.getGameProfile()));
-				if (entry.getLatency().isPresent())
-					Ref.set(data, "b", entry.getLatency().get());
-				if (entry.getGameMode().isPresent())
-					Ref.set(data, "c", EnumGamemode.valueOf(entry.getGameMode().get().name()));
-				if (entry.getPlayerListName().isPresent())
-					Ref.set(data, "e", toIChatBaseComponent(entry.getPlayerListName().get()));
-			}
-		}
 	}
 
 	@Override

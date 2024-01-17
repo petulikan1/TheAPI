@@ -57,8 +57,6 @@ import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.nms.GameProfileHandler.PropertyHandler;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils.DestinationType;
-import me.devtec.theapi.bukkit.tablist.TabEntry;
-import me.devtec.theapi.bukkit.tablist.Tablist;
 import net.minecraft.server.v1_7_R4.Block;
 import net.minecraft.server.v1_7_R4.BlockFalling;
 import net.minecraft.server.v1_7_R4.Blocks;
@@ -1429,33 +1427,6 @@ public class v1_7_R4 implements NmsProvider {
 		if (event.getFalvicon() != null)
 			ping.setFavicon(event.getFalvicon());
 		return false;
-	}
-
-	@Override
-	public void processPlayerInfo(Player player, Object channel, Object packet, Tablist tablist) {
-		UUID id = ((GameProfile) Ref.get(packet, "player")).getId();
-		if (id.equals(player.getUniqueId())) {
-			if (tablist.isGameProfileModified())
-				Ref.set(packet, "player", toGameProfile(tablist.getGameProfile()));
-			if (tablist.getLatency().isPresent())
-				Ref.set(packet, "ping", tablist.getLatency().get());
-			if (tablist.getGameMode().isPresent())
-				Ref.set(packet, "gamemode", tablist.getGameMode().get().ordinal());
-			if (tablist.getPlayerListName().isPresent())
-				Ref.set(packet, "username", tablist.getPlayerListName().get().toString());
-		} else {
-			TabEntry entry = tablist.getEntryById(id);
-			if (entry == null)
-				return;
-			if (entry.isGameProfileModified())
-				Ref.set(packet, "player", toGameProfile(entry.getGameProfile()));
-			if (entry.getLatency().isPresent())
-				Ref.set(packet, "ping", entry.getLatency().get());
-			if (entry.getGameMode().isPresent())
-				Ref.set(packet, "gamemode", entry.getGameMode().get().ordinal());
-			if (entry.getPlayerListName().isPresent())
-				Ref.set(packet, "username", entry.getPlayerListName().get().toString());
-		}
 	}
 
 	@Override

@@ -66,8 +66,6 @@ import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.nms.GameProfileHandler.PropertyHandler;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils.DestinationType;
-import me.devtec.theapi.bukkit.tablist.TabEntry;
-import me.devtec.theapi.bukkit.tablist.Tablist;
 import me.devtec.theapi.bukkit.xseries.XMaterial;
 import net.minecraft.EnumChatFormat;
 import net.minecraft.core.BlockPosition;
@@ -1470,35 +1468,6 @@ public class v1_18_R1 implements NmsProvider {
 		if (event.getFalvicon() != null)
 			ping.a(event.getFalvicon());
 		return false;
-	}
-
-	@Override
-	public void processPlayerInfo(Player player, Object channel, Object packet, Tablist tablist) {
-		for (PlayerInfoData data : ((PacketPlayOutPlayerInfo) packet).b()) {
-			UUID id = data.a().getId();
-			if (id.equals(player.getUniqueId())) {
-				if (tablist.isGameProfileModified())
-					Ref.set(data, "c", toGameProfile(tablist.getGameProfile()));
-				if (tablist.getLatency().isPresent())
-					Ref.set(data, "a", tablist.getLatency().get());
-				if (tablist.getGameMode().isPresent())
-					Ref.set(data, "b", EnumGamemode.valueOf(tablist.getGameMode().get().name()));
-				if (tablist.getPlayerListName().isPresent())
-					Ref.set(data, "d", toIChatBaseComponent(tablist.getPlayerListName().get()));
-			} else {
-				TabEntry entry = tablist.getEntryById(id);
-				if (entry == null)
-					continue; // not registered yet / removed from entries, skip
-				if (entry.isGameProfileModified())
-					Ref.set(data, "c", toGameProfile(entry.getGameProfile()));
-				if (entry.getLatency().isPresent())
-					Ref.set(data, "a", entry.getLatency().get());
-				if (entry.getGameMode().isPresent())
-					Ref.set(data, "b", EnumGamemode.valueOf(entry.getGameMode().get().name()));
-				if (entry.getPlayerListName().isPresent())
-					Ref.set(data, "d", toIChatBaseComponent(entry.getPlayerListName().get()));
-			}
-		}
 	}
 
 	@Override

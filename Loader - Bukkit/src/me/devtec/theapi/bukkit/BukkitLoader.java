@@ -61,7 +61,6 @@ import me.devtec.theapi.bukkit.packetlistener.PacketHandler;
 import me.devtec.theapi.bukkit.packetlistener.PacketHandlerModern;
 import me.devtec.theapi.bukkit.packetlistener.PacketListener;
 import me.devtec.theapi.bukkit.scoreboard.ScoreboardAPI;
-import me.devtec.theapi.bukkit.tablist.Tablist;
 
 public class BukkitLoader extends JavaPlugin implements Listener {
 
@@ -76,7 +75,6 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 
 	// private fields
 	private static Class<?> serverPing;
-	private static Class<?> playerInfo;
 	private static Class<?> resource;
 	private static Class<?> close;
 	private static Class<?> click;
@@ -163,7 +161,6 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		resource = Ref.nms("network.protocol.game", "PacketPlayInResourcePackStatus");
 		close = Ref.nms("network.protocol.game", "PacketPlayInCloseWindow");
 		serverPing = Ref.nms("network.protocol.status", "PacketStatusOutServerInfo");
-		playerInfo = Ref.nms("network.protocol.status", "PacketPlayOutPlayerInfo");
 		click = Ref.nms("network.protocol.game", "PacketPlayInWindowClick");
 		itemname = Ref.nms("network.protocol.game", "PacketPlayInItemName");
 
@@ -185,12 +182,6 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 						return; // Do not process if event isn't used by any plugin
 					if (nmsProvider.processServerListPing(nick, channel.getChannel(), packet))
 						packetContainer.setCancelled(true);
-					return;
-				}
-				if (packet.getClass() == playerInfo) {
-					Player player = Bukkit.getPlayer(nick);
-					if (player != null)
-						nmsProvider.processPlayerInfo(player, channel.getChannel(), packet, Tablist.of(player));
 				}
 			}
 
@@ -464,13 +455,8 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	public void onLoginEvent(PlayerLoginEvent e) { // fix uuid - premium login?
 		if (e.getResult() == Result.ALLOWED) {
 			API.offlineCache().setLookup(e.getPlayer().getUniqueId(), e.getPlayer().getName());
-			if (handler != null) {
+			if (handler != null)
 				handler.add(e.getPlayer());
-				Tablist tab = Tablist.of(e.getPlayer());
-				for (Player player : BukkitLoader.getOnlinePlayers())
-					if (!player.getUniqueId().equals(e.getPlayer().getUniqueId()) && e.getPlayer().canSee(player))
-						Tablist.of(player).addEntry(tab.asEntry(tab));
-			}
 		}
 	}
 

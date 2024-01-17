@@ -31,6 +31,7 @@ public class TeamUtils {
 				Ref.set(o, "d", always);
 				Ref.set(o, "e", always);
 				Ref.set(o, "f", color);
+				Ref.set(o, "g", 0);
 				Ref.set(packet, "k", Optional.of(o));
 			} catch (Exception e) {
 			}

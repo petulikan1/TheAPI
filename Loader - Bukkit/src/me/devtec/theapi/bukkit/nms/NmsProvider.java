@@ -21,7 +21,6 @@ import me.devtec.shared.components.ComponentAPI;
 import me.devtec.theapi.bukkit.game.BlockDataStorage;
 import me.devtec.theapi.bukkit.game.Position;
 import me.devtec.theapi.bukkit.gui.HolderGUI;
-import me.devtec.theapi.bukkit.tablist.Tablist;
 
 public interface NmsProvider {
 	static final UUID serverUuid = UUID.randomUUID();
@@ -365,8 +364,6 @@ public interface NmsProvider {
 
 	@Comment(comment = "Returns true if packet should be cancelled")
 	public boolean processServerListPing(String player, Object channel, Object packet);
-
-	public void processPlayerInfo(Player player, Object channel, Object packet, Tablist tablist);
 
 	// NBT Utils
 	public Object setString(Object nbt, String path, String value);
