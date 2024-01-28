@@ -26,7 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
-import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -445,13 +445,13 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		}).permission("theapireload.command").build().register("theapireload");
 	}
 
-	@EventHandler(priority = EventPriority.NORMAL)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onAsyncPreLoginEvent(AsyncPlayerPreLoginEvent e) {
 		if (e.getLoginResult() == org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.ALLOWED)
 			API.offlineCache().setLookup(e.getUniqueId(), e.getName());
 	}
 
-	@EventHandler(priority = EventPriority.NORMAL)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onLoginEvent(PlayerLoginEvent e) { // fix uuid - premium login?
 		if (e.getResult() == Result.ALLOWED) {
 			API.offlineCache().setLookup(e.getPlayer().getUniqueId(), e.getPlayer().getName());
@@ -460,13 +460,14 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		}
 	}
 
-	@EventHandler
-	public void onDisconnect(PlayerQuitEvent e) {
-		API.removeCache(e.getPlayer().getUniqueId());
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onLoginEvent(PlayerJoinEvent e) {
+		if (handler != null)
+			handler.add(e.getPlayer()); // Move to the first position
 	}
 
 	@EventHandler
-	public void onDisconnect(PlayerKickEvent e) {
+	public void onDisconnect(PlayerQuitEvent e) {
 		API.removeCache(e.getPlayer().getUniqueId());
 	}
 

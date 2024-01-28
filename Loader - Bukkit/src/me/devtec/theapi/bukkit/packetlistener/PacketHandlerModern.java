@@ -279,7 +279,7 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 								future.completeExceptionally(e);
 								break;
 							}
-							Object get = BukkitLoader.getNmsProvider().getNetworkChannel(BukkitLoader.getNmsProvider().getConnectionNetwork(BukkitLoader.getNmsProvider().getPlayerConnection(player)));
+							Object get = BukkitLoader.getNmsProvider().getNetworkChannel(BukkitLoader.getNmsProvider().getConnectionNetwork(connection));
 							if (get == null)
 								continue;
 							channelLookup.put(player.getName(), (Channel) get);
