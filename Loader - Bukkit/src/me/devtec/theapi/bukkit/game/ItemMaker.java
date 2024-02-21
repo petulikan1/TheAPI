@@ -603,12 +603,20 @@ public class ItemMaker implements Cloneable {
 				case 2: // Url
 					finalValue = ItemMaker.fromUrl(owner);
 				case 1: { // Values
+					byte[] decodedBytes = decode(finalValue);
+					long mostSignificant = 0;
+					long leastSignificant = 0;
+					for (int i = 0; i < 8; ++i)
+						mostSignificant = mostSignificant << 8 | decodedBytes[i] & 0xff;
+					for (int i = 8; i < 16; ++i)
+						leastSignificant = leastSignificant << 8 | decodedBytes[i] & 0xff;
+					UUID uuid = new UUID(mostSignificant, leastSignificant);
 					if (Ref.isNewerThan(16) && Ref.serverType() == ServerType.PAPER) {
-						com.destroystokyo.paper.profile.PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+						com.destroystokyo.paper.profile.PlayerProfile profile = Bukkit.createProfile(uuid);
 						profile.setProperty(new ProfileProperty("textures", finalValue));
 						iMeta.setPlayerProfile(profile);
 					} else if (Ref.isNewerThan(17)) {
-						PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID(), "");
+						PlayerProfile profile = Bukkit.createPlayerProfile(uuid, "");
 						@SuppressWarnings("unchecked")
 						Multimap<String, Object> props = (Multimap<String, Object>) Ref.get(profile, ItemMaker.properties);
 						props.removeAll("textures");
@@ -617,8 +625,7 @@ public class ItemMaker implements Cloneable {
 						props.put("textures", property);
 						iMeta.setOwnerProfile(profile);
 					} else
-						Ref.set(iMeta, HeadItemMaker.profileField,
-								BukkitLoader.getNmsProvider().toGameProfile(GameProfileHandler.of("", UUID.randomUUID(), PropertyHandler.of("textures", finalValue))));
+						Ref.set(iMeta, HeadItemMaker.profileField, BukkitLoader.getNmsProvider().toGameProfile(GameProfileHandler.of("", uuid, PropertyHandler.of("textures", finalValue))));
 					break;
 				}
 				default: // New dimension
@@ -633,6 +640,53 @@ public class ItemMaker implements Cloneable {
 			if (owner != null)
 				hash = hash * 33 + owner.hashCode();
 			return hash * 33 + ownerType;
+		}
+
+		private static final String BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+		public static byte[] decode(String input) {
+			int padding = countPaddingChars(input);
+			int length = input.length();
+			int outputLength = length * 6 / 8 - padding;
+
+			byte[] output = new byte[outputLength];
+
+			int buffer = 0;
+			int bufferLength = 0;
+			int index = 0;
+
+			for (int i = 0; i < input.length(); ++i) {
+				char c = input.charAt(i);
+				if (c == '=')
+					break; // Padding detected, end of input
+				int value = BASE64_ALPHABET.indexOf(c);
+				if (value == -1)
+					throw new IllegalArgumentException("Invalid Base64 character: " + c);
+
+				buffer = buffer << 6 | value;
+				bufferLength += 6;
+
+				if (bufferLength >= 8) {
+					bufferLength -= 8;
+					output[index++] = (byte) (buffer >> bufferLength & 0xFF);
+				}
+			}
+
+			if (index != outputLength)
+				throw new IllegalArgumentException("Input length is not a multiple of 4.");
+
+			return output;
+		}
+
+		private static int countPaddingChars(String input) {
+			int count = 0;
+			int length = input.length();
+			for (int i = length - 1; i >= 0; i--)
+				if (input.charAt(i) == '=')
+					count++;
+				else
+					break;
+			return count;
 		}
 	}
 
