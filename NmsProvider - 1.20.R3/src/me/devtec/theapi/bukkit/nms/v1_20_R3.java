@@ -93,7 +93,6 @@ import net.minecraft.network.chat.ChatHoverable.EnumHoverAction;
 import net.minecraft.network.chat.ChatModifier;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.chat.IChatMutableComponent;
-import net.minecraft.network.chat.numbers.BlankFormat;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
@@ -313,8 +312,7 @@ public class v1_20_R3 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardDisplayObjective(int id, Object scoreboardObjective) {
-		return new PacketPlayOutScoreboardDisplayObjective(DisplaySlot.values().length >= id ? DisplaySlot.b : DisplaySlot.values()[id],
-				scoreboardObjective == null ? null : (ScoreboardObjective) scoreboardObjective);
+		return new PacketPlayOutScoreboardDisplayObjective(DisplaySlot.values()[id], scoreboardObjective == null ? null : (ScoreboardObjective) scoreboardObjective);
 	}
 
 	@Override
@@ -328,7 +326,7 @@ public class v1_20_R3 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardScore(Action action, String player, String line, int score) {
-		return new PacketPlayOutScoreboardScore(player, line, score, (IChatBaseComponent) toIChatBaseComponent((Component) null), BlankFormat.a);
+		return new PacketPlayOutScoreboardScore(line, player, score, null, null);
 	}
 
 	@Override

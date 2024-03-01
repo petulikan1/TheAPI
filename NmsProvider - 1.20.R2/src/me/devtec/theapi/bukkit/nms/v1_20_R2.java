@@ -312,8 +312,7 @@ public class v1_20_R2 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardDisplayObjective(int id, Object scoreboardObjective) {
-		return new PacketPlayOutScoreboardDisplayObjective(DisplaySlot.values().length >= id ? DisplaySlot.b : DisplaySlot.values()[id],
-				scoreboardObjective == null ? null : (ScoreboardObjective) scoreboardObjective);
+		return new PacketPlayOutScoreboardDisplayObjective(DisplaySlot.values()[id], scoreboardObjective == null ? null : (ScoreboardObjective) scoreboardObjective);
 	}
 
 	@Override
