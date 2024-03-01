@@ -20,9 +20,9 @@ import me.devtec.theapi.bukkit.nms.NmsProvider.DisplayType;
 import me.devtec.theapi.bukkit.nms.utils.TeamUtils;
 
 /**
- * https://gist.github.com/MrZalTy/f8895d84979d49af946fbcc108b1bf2b
+ * https://gist.github.com/f8895d84979d49af946fbcc108b1bf2b
  *
- * @author MrZalTy Forked by Straikerinos
+ * @author zyuiop Forked by Straikerinos
  *
  */
 public class ScoreboardAPI {
@@ -199,7 +199,9 @@ public class ScoreboardAPI {
 			Ref.set(packet, "d", sbname);
 			Ref.set(packet, "e", BukkitLoader.getNmsProvider().toIChatBaseComponent(ComponentAPI.fromString(displayName)));
 			Ref.set(packet, "f", BukkitLoader.getNmsProvider().getEnumScoreboardHealthDisplay(DisplayType.INTEGER));
-			Ref.set(packet, "g", mode);
+			if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 3)
+				Ref.set(packet, "g", null);
+			Ref.set(packet, Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 3 ? "h" : "g", mode);
 		} else {
 			Ref.set(packet, "a", sbname);
 			Ref.set(packet, "b", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().toIChatBaseComponent(ComponentAPI.fromString(displayName)) : displayName);

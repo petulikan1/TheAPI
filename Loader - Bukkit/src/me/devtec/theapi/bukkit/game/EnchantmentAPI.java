@@ -168,11 +168,18 @@ public enum EnchantmentAPI {
 	 */
 	public static boolean registerEnchantment(Enchantment enchantment) {
 		boolean registered = false;
-		Ref.set(null, acceptingNew, true);
-		try {
-			Enchantment.registerEnchantment(enchantment);
+		if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 3) {
+			@SuppressWarnings("unchecked")
+			Map<Object, Object> map = (Map<Object, Object>) Ref.get(Ref.getStatic(Ref.getClass("org.bukkit.Registry"), "ENCHANTMENT"), "map");
+			map.put(Ref.invoke(enchantment, "getKey"), enchantment);
 			registered = true;
-		} catch (Exception ea) {
+		} else {
+			Ref.set(null, acceptingNew, true);
+			try {
+				Ref.invokeStatic(Ref.method(Enchantment.class, "registerEnchantment", Enchantment.class), enchantment);
+				registered = true;
+			} catch (Exception ea) {
+			}
 		}
 		return registered;
 	}
