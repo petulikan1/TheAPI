@@ -4,6 +4,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -79,7 +81,12 @@ public class BukkitCommandManager implements CommandsRegister {
 			commandHolder.execute(s, args);
 			return true;
 		});
-		cmd.setTabCompleter((s, arg1, arg2, args) -> commandHolder.tablist(s, args));
+		cmd.setTabCompleter((s, arg1, arg2, args) -> {
+			Collection<String> tablist = commandHolder.tablist(s, args);
+			if (tablist.isEmpty())
+				return Collections.emptyList();
+			return tablist instanceof List ? (List<String>) tablist : new ArrayList<>(tablist);
+		});
 		cmd.setPermission(commandHolder.getStructure().getPermission());
 		commandHolder.setRegisteredCommand(cmd, command, aliases);
 

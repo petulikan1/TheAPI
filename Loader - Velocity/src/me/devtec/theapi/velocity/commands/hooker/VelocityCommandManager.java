@@ -1,5 +1,8 @@
 package me.devtec.theapi.velocity.commands.hooker;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import com.velocitypowered.api.command.SimpleCommand;
@@ -21,7 +24,10 @@ public class VelocityCommandManager implements CommandsRegister {
 
 			@Override
 			public List<String> suggest(Invocation invocation) {
-				return commandHolder.tablist(invocation.source(), invocation.arguments());
+				Collection<String> tablist = commandHolder.tablist(invocation.source(), invocation.arguments());
+				if (tablist.isEmpty())
+					return Collections.emptyList();
+				return tablist instanceof List ? (List<String>) tablist : new ArrayList<>(tablist);
 			}
 
 			@Override
