@@ -23,18 +23,12 @@ public class PacketManager {
 
 		if (type == PacketType.PLAY_OUT)
 			for (Priority o : PRIORITIES)
-				for (PacketListener w : PacketManager.listeners.get(o)) {
-					if (!pContainer.isCancelled() && w.playOut(player, packet, channel)) // TODO Planned to remove in 12.0
-						pContainer.setCancelled(true);
+				for (PacketListener w : PacketManager.listeners.get(o))
 					w.playOut(player, pContainer, cContainer);
-				}
 		else
 			for (Priority o : PRIORITIES)
-				for (PacketListener w : PacketManager.listeners.get(o)) {
-					if (!pContainer.isCancelled() && w.playIn(player, packet, channel)) // TODO Planned to remove in 12.0
-						pContainer.setCancelled(true);
+				for (PacketListener w : PacketManager.listeners.get(o))
 					w.playIn(player, pContainer, cContainer);
-				}
 		return pContainer.isCancelled() ? null : pContainer.getPacket();
 	}
 
