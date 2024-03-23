@@ -851,7 +851,7 @@ public class v1_20_R3 implements NmsProvider {
 		Containers<?> windowType = Containers.a;
 		switch (size) {
 		case 0: {
-			windowType = Containers.h;
+			windowType = Containers.i;
 			break;
 		}
 		case 18: {
