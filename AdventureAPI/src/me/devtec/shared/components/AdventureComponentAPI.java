@@ -2,6 +2,7 @@ package me.devtec.shared.components;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.api.BinaryTagHolder;
@@ -27,20 +28,25 @@ public class AdventureComponentAPI<T> implements ComponentTransformer<net.kyori.
 	}
 
 	private void doMagicLoop(List<Component> sub, net.kyori.adventure.text.Component value) {
+		Component comp = this.convert(value);
+		if (comp.getText() != null && !comp.getText().isEmpty())
+			sub.add(this.convert(value));
 		for (net.kyori.adventure.text.Component extra : value.children())
-			sub.add(this.convert(extra));
+			this.doMagicLoop(sub, extra);
 	}
 
 	private Component convert(net.kyori.adventure.text.Component value) {
 		Component sub = new Component(value instanceof TextComponent ? ((TextComponent) value).content() : value.toString());
 		if (value.color() != null)
 			sub.setColor(value.color().asHexString());
-		sub.setFont(value.font().asString());
-		sub.setBold(value.style().decorations().getOrDefault(TextDecoration.BOLD, State.NOT_SET) == State.TRUE);
-		sub.setItalic(value.style().decorations().getOrDefault(TextDecoration.ITALIC, State.NOT_SET) == State.TRUE);
-		sub.setObfuscated(value.style().decorations().getOrDefault(TextDecoration.OBFUSCATED, State.NOT_SET) == State.TRUE);
-		sub.setStrikethrough(value.style().decorations().getOrDefault(TextDecoration.STRIKETHROUGH, State.NOT_SET) == State.TRUE);
-		sub.setUnderlined(value.style().decorations().getOrDefault(TextDecoration.UNDERLINED, State.NOT_SET) == State.TRUE);
+		if (value.font() != null)
+			sub.setFont(value.font().asString());
+		Map<TextDecoration, State> decorations = value.style().decorations();
+		sub.setBold(decorations.getOrDefault(TextDecoration.BOLD, State.NOT_SET) == State.TRUE);
+		sub.setItalic(decorations.getOrDefault(TextDecoration.ITALIC, State.NOT_SET) == State.TRUE);
+		sub.setObfuscated(decorations.getOrDefault(TextDecoration.OBFUSCATED, State.NOT_SET) == State.TRUE);
+		sub.setStrikethrough(decorations.getOrDefault(TextDecoration.STRIKETHROUGH, State.NOT_SET) == State.TRUE);
+		sub.setUnderlined(decorations.getOrDefault(TextDecoration.UNDERLINED, State.NOT_SET) == State.TRUE);
 
 		if (value.hoverEvent() != null)
 			if (value.hoverEvent().action() == Action.SHOW_TEXT || value.hoverEvent().action() == Action.SHOW_ACHIEVEMENT)
