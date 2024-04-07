@@ -1713,12 +1713,15 @@ public class v1_19_R1 implements NmsProvider {
 		return profile;
 	}
 
+	private Field name = Ref.field(Property.class, "name"), value = Ref.field(Property.class, "value"), signature = Ref.field(Property.class, "signature");
+
 	@Override
 	public GameProfileHandler fromGameProfile(Object gameProfile) {
 		GameProfile profile = (GameProfile) gameProfile;
 		GameProfileHandler handler = GameProfileHandler.of(profile.getName(), profile.getId());
 		for (Entry<String, Property> entry : profile.getProperties().entries())
-			handler.getProperties().put(entry.getKey(), PropertyHandler.of(entry.getValue().getName(), entry.getValue().getValue(), entry.getValue().getSignature()));
+			handler.getProperties().put(entry.getKey(),
+					PropertyHandler.of((String) Ref.get(entry.getValue(), name), (String) Ref.get(entry.getValue(), value), (String) Ref.get(entry.getValue(), signature)));
 		return handler;
 	}
 
