@@ -87,8 +87,10 @@ public class ItemMaker implements Cloneable {
 	@Override
 	public ItemMaker clone() {
 		ItemMaker maker = of(material).amount(amount).damage(damage).rawDisplayName(displayName).rawLore(lore).customModel(customModel).data(data).unbreakable(unbreakable).itemFlags(itemFlags);
-		if (enchants != null)
+		if (enchants != null) {
+			maker.enchants = new HashMap<>();
 			maker.enchants.putAll(enchants);
+		}
 		if (nbt != null && nbt.getNBT() != null && !nbt.getKeys().isEmpty())
 			maker.nbt(new NBTEdit(nbt.getNBT().toString()));
 		return maker;
