@@ -16,18 +16,18 @@ public class ServerListPingEvent extends Event implements Cancellable {
 	private int online;
 	private int max;
 	private int protocol;
-	private List<GameProfileHandler> playersText;
+	private List<GameProfileHandler> slots;
 	private String motd;
-	private String falvicon;
+	private String favicon;
 	private String version;
 	private final InetAddress address;
 
-	public ServerListPingEvent(int online, int max, List<GameProfileHandler> playersText, String motd, String falvicon, InetAddress inetAddress, String ver, int protocol) {
+	public ServerListPingEvent(int online, int max, List<GameProfileHandler> slots, String motd, String favicon, InetAddress inetAddress, String ver, int protocol) {
 		this.online = online;
 		this.max = max;
-		this.playersText = playersText;
+		this.slots = slots;
 		this.motd = motd;
-		this.falvicon = falvicon;
+		this.favicon = favicon;
 		this.protocol = protocol;
 		address = inetAddress;
 		version = ver;
@@ -69,12 +69,12 @@ public class ServerListPingEvent extends Event implements Cancellable {
 		this.max = max;
 	}
 
-	public List<GameProfileHandler> getPlayersText() {
-		return playersText;
+	public List<GameProfileHandler> getSlots() {
+		return slots;
 	}
 
-	public void setPlayersText(List<GameProfileHandler> playersText) {
-		this.playersText = playersText;
+	public void setPlayersText(List<GameProfileHandler> slots) {
+		this.slots = slots;
 	}
 
 	public String getMotd() {
@@ -85,12 +85,12 @@ public class ServerListPingEvent extends Event implements Cancellable {
 		this.motd = motd;
 	}
 
-	public String getFalvicon() {
-		return falvicon;
+	public String getFavicon() {
+		return favicon;
 	}
 
-	public void setFalvicon(String falvicon) {
-		this.falvicon = falvicon;
+	public void setFavicon(String falvicon) {
+		favicon = falvicon;
 	}
 
 	@Override
