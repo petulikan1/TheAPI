@@ -1432,10 +1432,10 @@ public class v1_19_R2 implements NmsProvider {
 		if (event.isCancelled())
 			return true;
 		ServerPingPlayerSample playerSample = new ServerPingPlayerSample(event.getMaxPlayers(), event.getOnlinePlayers());
-		if (event.getPlayersText() != null) {
-			GameProfile[] profiles = new GameProfile[event.getPlayersText().size()];
+		if (event.getSlots() != null) {
+			GameProfile[] profiles = new GameProfile[event.getSlots().size()];
 			int i = -1;
-			for (GameProfileHandler s : event.getPlayersText())
+			for (GameProfileHandler s : event.getSlots())
 				profiles[++i] = new GameProfile(s.getUUID(), s.getUsername());
 			playerSample.a(profiles);
 		} else
@@ -1448,8 +1448,8 @@ public class v1_19_R2 implements NmsProvider {
 			ping.a((IChatBaseComponent) BukkitLoader.getNmsProvider().chatBase("{\"text\":\"\"}"));
 		if (event.getVersion() != null)
 			ping.a(new ServerData(event.getVersion(), event.getProtocol()));
-		if (event.getFalvicon() != null)
-			ping.a(event.getFalvicon());
+		if (event.getFavicon() != null)
+			ping.a(event.getFavicon());
 		return false;
 	}
 

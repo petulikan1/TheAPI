@@ -180,7 +180,8 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 				if (packet.getClass() == serverPing) {
 					if (ServerListPingEvent.getHandlerList().isEmpty())
 						return; // Do not process if event isn't used by any plugin
-					if (nmsProvider.processServerListPing(nick, channel.getChannel(), packet))
+					if (nmsProvider.processServerListPing(nick, channel.getChannel(),
+							Ref.isNewerThan(19) || Ref.serverVersionInt() == 19 && Ref.serverVersionRelease() == 3 ? packetContainer : packetContainer.getPacket()))
 						packetContainer.setCancelled(true);
 				}
 			}

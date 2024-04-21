@@ -49,6 +49,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
@@ -76,6 +77,7 @@ import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.nms.GameProfileHandler.PropertyHandler;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils;
 import me.devtec.theapi.bukkit.nms.utils.InventoryUtils.DestinationType;
+import me.devtec.theapi.bukkit.packetlistener.PacketContainer;
 import me.devtec.theapi.bukkit.xseries.XMaterial;
 import net.minecraft.EnumChatFormat;
 import net.minecraft.core.BlockPosition;
@@ -1428,51 +1430,58 @@ public class v1_20_R1 implements NmsProvider {
 
 	@Override
 	public boolean processServerListPing(String player, Object channel, Object packet) {
-		PacketStatusOutServerInfo status = (PacketStatusOutServerInfo) packet;
-		ServerPing ping = status.a();
+		if (packet instanceof PacketContainer) {
+			PacketContainer container = (PacketContainer) packet;
+			PacketStatusOutServerInfo status = (PacketStatusOutServerInfo) container.getPacket();
+			ServerPing ping = status.a();
 
-		List<GameProfileHandler> gameProfiles = new ArrayList<>();
-		for (GameProfile profile : ping.b().get().c())
-			gameProfiles.add(fromGameProfile(profile));
+			List<GameProfileHandler> gameProfiles = new ArrayList<>();
+			for (GameProfile profile : ping.b().get().c())
+				gameProfiles.add(fromGameProfile(profile));
 
-		IChatBaseComponent motd = IChatBaseComponent.a("");
-		Optional<ServerPingPlayerSample> players = Optional.empty();
-		Optional<ServerData> onlineCount = Optional.empty();
-		Optional<ServerPing.a> serverIcon = Optional.empty();
-		boolean enforceSecureProfile = ping.e();
+			IChatBaseComponent motd = IChatBaseComponent.a("");
+			Optional<ServerPingPlayerSample> players = Optional.empty();
+			Optional<ServerData> onlineCount = Optional.empty();
+			Optional<ServerPing.a> serverIcon = Optional.empty();
+			boolean enforceSecureProfile = ping.e();
 
-		String favicon = "server-icon.png";
-		ServerListPingEvent event = new ServerListPingEvent(getOnlinePlayers().size(), Bukkit.getMaxPlayers(), gameProfiles, Bukkit.getMotd(), favicon,
-				((InetSocketAddress) ((Channel) channel).remoteAddress()).getAddress(), ping.c().get().b(), ping.c().get().c());
-		EventManager.call(event);
-		if (event.isCancelled())
-			return true;
-		ServerPingPlayerSample playerSample = new ServerPingPlayerSample(event.getMaxPlayers(), event.getOnlinePlayers(), new ArrayList<>());
-		if (event.getPlayersText() != null)
-			for (GameProfileHandler s : event.getPlayersText())
-				playerSample.c().add(new GameProfile(s.getUUID(), s.getUsername()));
-		players = Optional.of(playerSample);
+			String favicon = "server-icon.png";
+			ServerListPingEvent event = new ServerListPingEvent(getOnlinePlayers().size(), Bukkit.getMaxPlayers(), gameProfiles, Bukkit.getMotd(), favicon,
+					((InetSocketAddress) ((Channel) channel).remoteAddress()).getAddress(), ping.c().get().b(), ping.c().get().c());
+			EventManager.call(event);
+			if (event.isCancelled()) {
+				container.setCancelled(true);
+				return true;
+			}
+			ServerPingPlayerSample playerSample = new ServerPingPlayerSample(event.getMaxPlayers(), event.getOnlinePlayers(), new ArrayList<>());
+			if (event.getSlots() != null)
+				for (GameProfileHandler s : event.getSlots())
+					playerSample.c().add(new GameProfile(s.getUUID(), s.getUsername()));
+			players = Optional.of(playerSample);
 
-		if (event.getMotd() != null)
-			motd = (IChatBaseComponent) this.toIChatBaseComponent(ComponentAPI.fromString(event.getMotd()));
-		if (event.getVersion() != null)
-			onlineCount = Optional.of(new ServerData(event.getVersion(), event.getProtocol()));
-		if (event.getFalvicon() != null)
-			if (!event.getFalvicon().equals("server-icon.png") && new File(event.getFalvicon()).exists()) {
-				BufferedImage var1;
-				try {
-					var1 = ImageIO.read(new File(event.getFalvicon()));
-					Preconditions.checkState(var1.getWidth() == 64, "Must be 64 pixels wide");
-					Preconditions.checkState(var1.getHeight() == 64, "Must be 64 pixels high");
-					ByteArrayOutputStream var2 = new ByteArrayOutputStream();
-					ImageIO.write(var1, "PNG", var2);
-					serverIcon = Optional.of(new ServerPing.a(var2.toByteArray()));
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} else
-				serverIcon = ping.d();
-		Ref.set(status, "a", new ServerPing(motd, players, onlineCount, serverIcon, enforceSecureProfile));
+			if (event.getMotd() != null)
+				motd = (IChatBaseComponent) this.toIChatBaseComponent(ComponentAPI.fromString(event.getMotd()));
+			if (event.getVersion() != null)
+				onlineCount = Optional.of(new ServerData(event.getVersion(), event.getProtocol()));
+			if (event.getFavicon() != null)
+				if (!event.getFavicon().equals("server-icon.png") && new File(event.getFavicon()).exists()) {
+					BufferedImage var1;
+					try {
+						var1 = ImageIO.read(new File(event.getFavicon()));
+						Preconditions.checkState(var1.getWidth() == 64, "Must be 64 pixels wide");
+						Preconditions.checkState(var1.getHeight() == 64, "Must be 64 pixels high");
+						ByteArrayOutputStream var2 = new ByteArrayOutputStream();
+						ImageIO.write(var1, "PNG", var2);
+						serverIcon = Optional.of(new ServerPing.a(var2.toByteArray()));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				} else
+					serverIcon = ping.d();
+			container.setPacket(new PacketStatusOutServerInfo(new ServerPing(motd, players, onlineCount, serverIcon, enforceSecureProfile)));
+			return false;
+		}
+		JavaPlugin.getPlugin(BukkitLoader.class).getLogger().warning("You are using outdated version of TheAPI, please update TheAPI to the latest version!");
 		return false;
 	}
 
@@ -1669,7 +1678,7 @@ public class v1_20_R1 implements NmsProvider {
 		return new ClientboundPlayerInfoUpdatePacket(action, (EntityPlayer) getPlayer(player));
 	}
 
-	static boolean MODERN_CLIENTBOUND_PACKET = Ref.constructor(ClientboundPlayerInfoUpdatePacket.class, EnumSet.class, List.class) != null ? false : true;
+	static boolean MODERN_CLIENTBOUND_PACKET = Ref.constructor(ClientboundPlayerInfoUpdatePacket.class, EnumSet.class, List.class) == null;
 	static Field setField, listField;
 	static Constructor<?> clientboundConstructor;
 

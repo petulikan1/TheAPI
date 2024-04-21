@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1132,8 +1131,8 @@ public class v1_16_R3 implements NmsProvider {
 				nPlayer.playerConnection.sendPacket(new PacketPlayOutTransaction(packet.b(), packet.e(), false));
 				c.a(nPlayer, false);
 				NonNullList<net.minecraft.server.v1_16_R3.ItemStack> nonnulllist1 = NonNullList.a();
-				for (int j = 0; j < c.slots.size(); ++j) {
-					net.minecraft.server.v1_16_R3.ItemStack cursor = c.slots.get(j).getItem();
+				for (Slot element : c.slots) {
+					net.minecraft.server.v1_16_R3.ItemStack cursor = element.getItem();
 					nonnulllist1.add(cursor.isEmpty() ? net.minecraft.server.v1_16_R3.ItemStack.b : cursor);
 				}
 				nPlayer.a(c, nonnulllist1);
@@ -1387,10 +1386,8 @@ public class v1_16_R3 implements NmsProvider {
 					}
 					int t = (int) Ref.get(container, containerT);
 					int l = player.inventory.getCarried().getCount();
-					final Iterator<Slot> iterator = mod.iterator();
 					final Map<Integer, net.minecraft.server.v1_16_R3.ItemStack> draggedSlots = new HashMap<>();
-					while (iterator.hasNext()) {
-						final Slot slot2 = iterator.next();
+					for (Slot slot2 : mod) {
 						final net.minecraft.server.v1_16_R3.ItemStack itemstack3 = player.inventory.getCarried();
 						if (slot2 != null && Container.a(slot2, itemstack3, true) && slot2.isAllowed(itemstack3) && (t == 2 || itemstack3.getCount() >= mod.size()) && container.b(slot2)) {
 
@@ -1479,10 +1476,10 @@ public class v1_16_R3 implements NmsProvider {
 		if (event.isCancelled())
 			return true;
 		ServerPingPlayerSample playerSample = new ServerPingPlayerSample(event.getMaxPlayers(), event.getOnlinePlayers());
-		if (event.getPlayersText() != null) {
-			GameProfile[] profiles = new GameProfile[event.getPlayersText().size()];
+		if (event.getSlots() != null) {
+			GameProfile[] profiles = new GameProfile[event.getSlots().size()];
 			int i = -1;
-			for (GameProfileHandler s : event.getPlayersText())
+			for (GameProfileHandler s : event.getSlots())
 				profiles[++i] = new GameProfile(s.getUUID(), s.getUsername());
 			playerSample.a(profiles);
 		} else
@@ -1495,8 +1492,8 @@ public class v1_16_R3 implements NmsProvider {
 			ping.setMOTD((IChatBaseComponent) BukkitLoader.getNmsProvider().chatBase("{\"text\":\"\"}"));
 		if (event.getVersion() != null)
 			ping.setServerInfo(new ServerData(event.getVersion(), event.getProtocol()));
-		if (event.getFalvicon() != null)
-			ping.setFavicon(event.getFalvicon());
+		if (event.getFavicon() != null)
+			ping.setFavicon(event.getFavicon());
 		return false;
 	}
 

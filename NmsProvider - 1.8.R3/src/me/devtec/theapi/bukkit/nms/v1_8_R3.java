@@ -1413,10 +1413,8 @@ public class v1_8_R3 implements NmsProvider {
 					itemstack2 = itemstack2.cloneItemStack();
 					int t = (int) Ref.get(container, containerT);
 					int l = player.inventory.getCarried().count;
-					final Iterator<Slot> iterator = mod.iterator();
 					final Map<Integer, net.minecraft.server.v1_8_R3.ItemStack> draggedSlots = new HashMap<>();
-					while (iterator.hasNext()) {
-						final Slot slot2 = iterator.next();
+					for (Slot slot2 : mod) {
 						final net.minecraft.server.v1_8_R3.ItemStack itemstack3 = player.inventory.getCarried();
 						if (slot2 != null && Container.a(slot2, itemstack3, true) && slot2.isAllowed(itemstack3) && (t == 2 || itemstack3.count >= mod.size()) && container.b(slot2)) {
 
@@ -1505,10 +1503,10 @@ public class v1_8_R3 implements NmsProvider {
 		if (event.isCancelled())
 			return true;
 		ServerPingPlayerSample playerSample = new ServerPingPlayerSample(event.getMaxPlayers(), event.getOnlinePlayers());
-		if (event.getPlayersText() != null) {
-			GameProfile[] profiles = new GameProfile[event.getPlayersText().size()];
+		if (event.getSlots() != null) {
+			GameProfile[] profiles = new GameProfile[event.getSlots().size()];
 			int i = -1;
-			for (GameProfileHandler s : event.getPlayersText())
+			for (GameProfileHandler s : event.getSlots())
 				profiles[++i] = new GameProfile(s.getUUID(), s.getUsername());
 			playerSample.a(profiles);
 		} else
@@ -1521,8 +1519,8 @@ public class v1_8_R3 implements NmsProvider {
 			ping.setMOTD((IChatBaseComponent) BukkitLoader.getNmsProvider().chatBase("{\"text\":\"\"}"));
 		if (event.getVersion() != null)
 			ping.setServerInfo(new ServerData(event.getVersion(), event.getProtocol()));
-		if (event.getFalvicon() != null)
-			ping.setFavicon(event.getFalvicon());
+		if (event.getFavicon() != null)
+			ping.setFavicon(event.getFavicon());
 		return false;
 	}
 
