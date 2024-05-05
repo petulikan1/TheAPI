@@ -57,6 +57,8 @@ import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.ColorUtils.ColormaticFactory;
 import me.devtec.shared.utility.LibraryLoader;
 import me.devtec.shared.utility.ParseUtils;
+import me.devtec.shared.versioning.VersionUtils;
+import me.devtec.shared.versioning.VersionUtils.Version;
 import me.devtec.theapi.bukkit.commands.hooker.BukkitCommandManager;
 import me.devtec.theapi.bukkit.commands.selectors.BukkitSelectorUtils;
 import me.devtec.theapi.bukkit.game.BlockDataStorage;
@@ -179,8 +181,16 @@ public class BukkitLibInit {
 	}
 
 	public static void initTheAPI() {
-		Ref.init(Ref.getClass("net.md_5.bungee.api.ChatColor") != null ? Ref.getClass("net.kyori.adventure.Adventure") != null ? ServerType.PAPER : ServerType.SPIGOT : ServerType.BUKKIT,
-				Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3]);
+		try {
+			Ref.init(Ref.getClass("net.md_5.bungee.api.ChatColor") != null ? Ref.getClass("net.kyori.adventure.Adventure") != null ? ServerType.PAPER : ServerType.SPIGOT : ServerType.BUKKIT,
+					Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3]);
+		} catch (Exception e) {
+			// Paper 1.20.5+
+			Version ver = VersionUtils.getVersion(Bukkit.getServer().getMinecraftVersion(), "1.20.5");
+			if (ver == Version.SAME_VERSION || ver == Version.NEWER_VERSION)
+				Ref.init(Ref.getClass("net.md_5.bungee.api.ChatColor") != null ? Ref.getClass("net.kyori.adventure.Adventure") != null ? ServerType.PAPER : ServerType.SPIGOT : ServerType.BUKKIT,
+						Bukkit.getServer().getMinecraftVersion());
+		}
 
 		Metrics.gatheringInfoManager = new GatheringInfoManager() {
 

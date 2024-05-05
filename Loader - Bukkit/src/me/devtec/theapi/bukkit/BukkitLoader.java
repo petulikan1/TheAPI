@@ -293,8 +293,12 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 				getAllJarFiles();
 				checkForUpdateAndDownload();
 				if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
-					nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms." + Ref.serverVersion(),
-							new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
+					if (Ref.isNewerThan(19) && Ref.serverType() == ServerType.PAPER && Ref.serverVersionRelease() >= 5)
+						nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms.v" + Ref.serverVersion().replace('_', '.'),
+								new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
+					else
+						nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms." + Ref.serverVersion(),
+								new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
 					if (nmsProvider != null)
 						nmsProvider.loadParticles();
 				}
@@ -304,7 +308,10 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 				checkForUpdateAndDownloadCompiled();
 				if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists())
 					try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar" + "!/") }, getClassLoader())) {
-						Class<?> c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
+						Class<?> c;
+						if (Ref.isNewerThan(19) && Ref.serverType() == ServerType.PAPER && Ref.serverVersionRelease() >= 5)
+							c = cl.loadClass("me.devtec.theapi.bukkit.nms.v" + Ref.serverVersion().replace('_', '.'));
+						c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
 						nmsProvider = (NmsProvider) c.newInstance();
 						if (nmsProvider != null)
 							nmsProvider.loadParticles();
@@ -316,7 +323,10 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			checkForUpdateAndDownloadCompiled();
 			if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists())
 				try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar" + "!/") }, getClassLoader())) {
-					Class<?> c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
+					Class<?> c;
+					if (Ref.isNewerThan(19) && Ref.serverType() == ServerType.PAPER && Ref.serverVersionRelease() >= 5)
+						c = cl.loadClass("me.devtec.theapi.bukkit.nms.v" + Ref.serverVersion().replace('_', '.'));
+					c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
 					nmsProvider = (NmsProvider) c.newInstance();
 					if (nmsProvider != null)
 						nmsProvider.loadParticles();
