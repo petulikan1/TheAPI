@@ -390,7 +390,8 @@ public class v1_14_R1 implements NmsProvider {
 			switch (c.getHoverEvent().getAction()) {
 			case SHOW_ITEM:
 			case SHOW_ENTITY:
-				modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_ENTITY, new ChatComponentText(Json.writer().simpleWrite(c.getHoverEvent().getValue().toJsonMap()))));
+				modif = modif
+						.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_ENTITY, IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(c.getHoverEvent().getValue().toJsonMap()))));
 				break;
 			default:
 				modif = modif.setChatHoverable(new ChatHoverable(EnumHoverAction.SHOW_TEXT, (IChatBaseComponent) this.toIChatBaseComponent(c.getHoverEvent().getValue())));
@@ -439,7 +440,7 @@ public class v1_14_R1 implements NmsProvider {
 		if (co == null)
 			return new IChatBaseComponent[] { empty };
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new IChatBaseComponent[] { new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap())) };
+			return new IChatBaseComponent[] { IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(co.toJsonMap())) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(new ChatComponentText(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -463,7 +464,7 @@ public class v1_14_R1 implements NmsProvider {
 		if (co == null)
 			return empty;
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap()));
+			return IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(co.toJsonMap()));
 		ChatComponentText main = new ChatComponentText("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())

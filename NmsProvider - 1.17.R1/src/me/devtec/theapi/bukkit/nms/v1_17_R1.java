@@ -155,7 +155,6 @@ import net.minecraft.world.scores.criteria.IScoreboardCriteria.EnumScoreboardHea
 
 public class v1_17_R1 implements NmsProvider {
 	private static final MinecraftServer server = MinecraftServer.getServer();
-	private static final sun.misc.Unsafe unsafe = (sun.misc.Unsafe) Ref.getNulled(Ref.field(sun.misc.Unsafe.class, "theUnsafe"));
 
 	@Override
 	public Collection<? extends Player> getOnlinePlayers() {
@@ -289,11 +288,7 @@ public class v1_17_R1 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardObjective() {
-		try {
-			return v1_17_R1.unsafe.allocateInstance(PacketPlayOutScoreboardObjective.class);
-		} catch (Exception e) {
-			return null;
-		}
+		return Ref.newUnsafeInstance(PacketPlayOutScoreboardObjective.class);
 	}
 
 	@Override
@@ -303,11 +298,7 @@ public class v1_17_R1 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardTeam() {
-		try {
-			return v1_17_R1.unsafe.allocateInstance(PacketPlayOutScoreboardTeam.class);
-		} catch (Exception e) {
-			return null;
-		}
+		return Ref.newUnsafeInstance(PacketPlayOutScoreboardTeam.class);
 	}
 
 	@Override
@@ -451,7 +442,7 @@ public class v1_17_R1 implements NmsProvider {
 		if (co == null)
 			return new IChatBaseComponent[] { ChatComponentText.d };
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new IChatBaseComponent[] { new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap())) };
+			return new IChatBaseComponent[] { IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(co.toJsonMap())) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(new ChatComponentText(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -475,7 +466,7 @@ public class v1_17_R1 implements NmsProvider {
 		if (co == null)
 			return ChatComponentText.d;
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap()));
+			return IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(co.toJsonMap()));
 		ChatComponentText main = new ChatComponentText("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())

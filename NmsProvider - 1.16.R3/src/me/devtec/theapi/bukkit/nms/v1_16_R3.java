@@ -457,7 +457,7 @@ public class v1_16_R3 implements NmsProvider {
 		if (co == null)
 			return new IChatBaseComponent[] { ChatComponentText.d };
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new IChatBaseComponent[] { new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap())) };
+			return new IChatBaseComponent[] { IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(co.toJsonMap())) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(new ChatComponentText(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -481,7 +481,7 @@ public class v1_16_R3 implements NmsProvider {
 		if (co == null)
 			return ChatComponentText.d;
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new ChatComponentText(Json.writer().simpleWrite(co.toJsonMap()));
+			return IChatBaseComponent.ChatSerializer.b(Json.writer().simpleWrite(co.toJsonMap()));
 		ChatComponentText main = new ChatComponentText("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())

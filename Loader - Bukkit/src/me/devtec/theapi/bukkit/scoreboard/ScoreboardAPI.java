@@ -5,13 +5,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import me.devtec.shared.Ref;
-import me.devtec.shared.components.ComponentAPI;
+import me.devtec.shared.components.Component;
 import me.devtec.shared.utility.ColorUtils;
 import me.devtec.shared.utility.StringUtils;
 import me.devtec.theapi.bukkit.BukkitLoader;
@@ -52,9 +53,9 @@ public class ScoreboardAPI {
 		sbname = this.player;
 		if (sbname.length() > 16)
 			sbname = sbname.substring(0, 16);
-		BukkitLoader.getPacketHandler().send(p, createObjectivePacket(0, "§0"));
+		BukkitLoader.getPacketHandler().send(p, createObjectivePacket(0, new Component("§0")));
 		Object packet = BukkitLoader.getNmsProvider().packetScoreboardDisplayObjective(1, null);
-		Ref.set(packet, "b", sbname);
+		Ref.set(packet, BukkitLoader.NO_OBFUSCATED_NMS_MODE ? "objectiveName" : "b", sbname);
 		BukkitLoader.getPacketHandler().send(p, packet);
 	}
 
@@ -70,10 +71,10 @@ public class ScoreboardAPI {
 		if (destroyed)
 			return;
 		destroyed = true;
-		BukkitLoader.getPacketHandler().send(p, createObjectivePacket(1, ""));
+		BukkitLoader.getPacketHandler().send(p, createObjectivePacket(1, Component.EMPTY_COMPONENT));
 		for (Team team : data.values())
 			if (team != null) {
-				removeTeam(p, team.currentPlayer, team.name);
+				removeTeam(team.currentPlayer, team.name);
 				BukkitLoader.getPacketHandler().send(p, BukkitLoader.getNmsProvider().packetScoreboardScore(Action.REMOVE, sbname, team.currentPlayer, 0));
 			}
 		data.clear();
@@ -94,7 +95,7 @@ public class ScoreboardAPI {
 		if (!Ref.isNewerThan(12) && name.length() > 32)
 			name = name.substring(0, 32);
 		if (!name.equals(displayName))
-			BukkitLoader.getPacketHandler().send(p, createObjectivePacket(2, name));
+			BukkitLoader.getPacketHandler().send(p, createObjectivePacket(2, Component.fromString(name)));
 	}
 
 	public void addLine(String value) {
@@ -125,7 +126,7 @@ public class ScoreboardAPI {
 		if (!data.containsKey(line))
 			return;
 		Team team = getTeam(line, line);
-		removeTeam(p, team.currentPlayer, team.name);
+		removeTeam(team.currentPlayer, team.name);
 		BukkitLoader.getPacketHandler().send(p, BukkitLoader.getNmsProvider().packetScoreboardScore(Action.REMOVE, sbname, team.currentPlayer, 0));
 		data.remove(line);
 	}
@@ -136,7 +137,7 @@ public class ScoreboardAPI {
 			Entry<Integer, Team> entry = itr.next();
 			if (entry.getKey() >= line) {
 				itr.remove();
-				removeTeam(p, entry.getValue().currentPlayer, entry.getValue().name);
+				removeTeam(entry.getValue().currentPlayer, entry.getValue().name);
 				BukkitLoader.getPacketHandler().send(p, BukkitLoader.getNmsProvider().packetScoreboardScore(Action.REMOVE, sbname, entry.getValue().currentPlayer, 0));
 			}
 		}
@@ -173,45 +174,28 @@ public class ScoreboardAPI {
 		return result;
 	}
 
-	private void createTeam(Player sendTo, String prefix, String suffix, String name, String realName) {
-		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(0, TeamUtils.white, prefix, suffix, name, realName));
+	private void createTeam(Component prefix, Component suffix, String playerName, String teamName) {
+		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(0, TeamUtils.white, prefix, suffix, playerName, teamName));
 	}
 
-	private void modifyTeam(Player sendTo, String prefix, String suffix, String name, String realName) {
-		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(2, TeamUtils.white, prefix, suffix, name, realName));
+	private void modifyTeam(Component prefix, Component suffix, String playerName, String realName) {
+		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(2, TeamUtils.white, prefix, suffix, playerName, realName));
 	}
 
-	private void removeTeam(Player sendTo, String name, String realName) {
-		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(1, TeamUtils.white, "", "", name, realName));
+	private void removeTeam(String playerName, String teamName) {
+		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(1, TeamUtils.white, Component.EMPTY_COMPONENT, Component.EMPTY_COMPONENT, playerName, teamName));
 	}
 
-	private void removeTeamName(Player sendTo, String name, String realName) {
-		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(4, TeamUtils.white, "", "", name, realName));
+	private void removeTeamName(String playerName, String teamName) {
+		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(4, TeamUtils.white, Component.EMPTY_COMPONENT, Component.EMPTY_COMPONENT, playerName, teamName));
 	}
 
-	private void changeTeamName(Player sendTo, String name, String realName) {
-		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(3, TeamUtils.white, "", "", name, realName));
+	private void changeTeamName(String playerName, String teamName) {
+		BukkitLoader.getPacketHandler().send(p, TeamUtils.createTeamPacket(3, TeamUtils.white, Component.EMPTY_COMPONENT, Component.EMPTY_COMPONENT, playerName, teamName));
 	}
 
-	private Object createObjectivePacket(int mode, String displayName) {
-		Object packet = BukkitLoader.getNmsProvider().packetScoreboardObjective();
-		if (Ref.isNewerThan(16)) {
-			Ref.set(packet, "d", sbname);
-			Ref.set(packet, "e", BukkitLoader.getNmsProvider().toIChatBaseComponent(ComponentAPI.fromString(displayName)));
-			Ref.set(packet, "f", BukkitLoader.getNmsProvider().getEnumScoreboardHealthDisplay(DisplayType.INTEGER));
-			if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 3)
-				Ref.set(packet, "g", null);
-			Ref.set(packet, Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 3 ? "h" : "g", mode);
-		} else {
-			Ref.set(packet, "a", sbname);
-			Ref.set(packet, "b", Ref.isNewerThan(12) ? BukkitLoader.getNmsProvider().toIChatBaseComponent(ComponentAPI.fromString(displayName)) : displayName);
-			if (Ref.isNewerThan(7)) {
-				Ref.set(packet, "c", BukkitLoader.getNmsProvider().getEnumScoreboardHealthDisplay(DisplayType.INTEGER));
-				Ref.set(packet, "d", mode);
-			} else
-				Ref.set(packet, "c", mode);
-		}
-		return packet;
+	private Object createObjectivePacket(int mode, Component displayName) {
+		return TeamUtils.createObjectivePacket(mode, sbname, displayName, Optional.ofNullable(null), DisplayType.INTEGER);
 	}
 
 	public class Team {
@@ -238,16 +222,16 @@ public class ScoreboardAPI {
 
 		public void sendLine() {
 			if (first) {
-				createTeam(p, prefix, suffix, currentPlayer, name);
+				createTeam(Component.fromString(prefix), Component.fromString(suffix), currentPlayer, name);
 				changed = false;
 			} else if (changed) {
 				changed = false;
-				modifyTeam(p, prefix, suffix, currentPlayer, name);
+				modifyTeam(Component.fromString(prefix), Component.fromString(suffix), currentPlayer, name);
 			}
 			if (first || old != null) {
 				if (old != null)
-					removeTeamName(p, old, name);
-				changeTeamName(p, currentPlayer, name);
+					removeTeamName(old, name);
+				changeTeamName(currentPlayer, name);
 				old = null;
 				first = false;
 			}

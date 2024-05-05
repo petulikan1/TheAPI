@@ -24,7 +24,7 @@ import me.devtec.theapi.bukkit.gui.GUI.ClickType;
 
 /**
  * @apiNote Anvil GUI menu
- * 
+ *
  */
 public class AnvilGUI implements HolderGUI {
 
@@ -284,7 +284,7 @@ public class AnvilGUI implements HolderGUI {
 				Object anvil = o;
 				for (int i = 0; i < 2; ++i)
 					BukkitLoader.getNmsProvider().setSlot(anvil, i, BukkitLoader.getNmsProvider().getSlotItem(o, i));
-				Ref.invoke(anvil, "a", text);
+				Ref.invoke(anvil, BukkitLoader.NO_OBFUSCATED_NMS_MODE ? "setItemName" : "a", text);
 			} else
 				Ref.invoke(o, "a", text);
 	}

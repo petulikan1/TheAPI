@@ -1,6 +1,7 @@
 package me.devtec.theapi.bukkit;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -65,8 +66,10 @@ import me.devtec.theapi.bukkit.scoreboard.ScoreboardAPI;
 public class BukkitLoader extends JavaPlugin implements Listener {
 
 	// Init static APIs
+	public static final boolean NO_OBFUSCATED_NMS_MODE;
 	static {
 		BukkitLibInit.initTheAPI();
+		NO_OBFUSCATED_NMS_MODE = Ref.isNewerThan(20) && Ref.serverType() == ServerType.PAPER || Ref.isNewerThan(19) && Ref.serverVersionRelease() >= 5 && Ref.serverType() == ServerType.PAPER;
 	}
 
 	// public APIs
@@ -74,11 +77,6 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	public static PacketHandler<?> handler;
 
 	// private fields
-	private static Class<?> serverPing;
-	private static Class<?> resource;
-	private static Class<?> close;
-	private static Class<?> click;
-	private static Class<?> itemname;
 	private static double release;
 	private Metrics metrics;
 
@@ -158,11 +156,30 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			Bukkit.getConsoleSender().sendMessage(ColorUtils.colorize("&7> &4Error! &eFailed to load PacketHandler."));
 		}
 
-		resource = Ref.nms("network.protocol.game", "PacketPlayInResourcePackStatus");
-		close = Ref.nms("network.protocol.game", "PacketPlayInCloseWindow");
-		serverPing = Ref.nms("network.protocol.status", "PacketStatusOutServerInfo");
-		click = Ref.nms("network.protocol.game", "PacketPlayInWindowClick");
-		itemname = Ref.nms("network.protocol.game", "PacketPlayInItemName");
+		Class<?> serverPing;
+		Class<?> resource;
+		Class<?> close;
+		Class<?> click;
+		Class<?> itemname;
+		Field rpStatusField;
+		Field anvilText;
+		if (NO_OBFUSCATED_NMS_MODE) {
+			resource = Ref.nms("network.protocol.game", "ServerboundResourcePackPacket");
+			close = Ref.nms("network.protocol.game", "ServerboundContainerClosePacket");
+			serverPing = Ref.nms("network.protocol.status", "ClientboundStatusResponsePacket");
+			click = Ref.nms("network.protocol.game", "ServerboundContainerClickPacket");
+			itemname = Ref.nms("network.protocol.game", "ServerboundRenameItemPacket");
+			rpStatusField = Ref.field(resource, "action");
+			anvilText = Ref.field(itemname, "name");
+		} else {
+			resource = Ref.nms("network.protocol.game", "PacketPlayInResourcePackStatus");
+			close = Ref.nms("network.protocol.game", "PacketPlayInCloseWindow");
+			serverPing = Ref.nms("network.protocol.status", "PacketStatusOutServerInfo");
+			click = Ref.nms("network.protocol.game", "PacketPlayInWindowClick");
+			itemname = Ref.nms("network.protocol.game", "PacketPlayInItemName");
+			rpStatusField = Ref.field(resource, Ref.isNewerThan(16) ? "a" : "status");
+			anvilText = Ref.field(itemname, "a");
+		}
 
 		// BOSSBAR API: 1.7.10 - 1.8.8
 		if (!Ref.isOlderThan(9))
@@ -208,30 +225,29 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 				Object packet = packetContainer.getPacket();
 
 				// ResourcePackAPI
-				if (packet.getClass() == BukkitLoader.resource) {
+				if (packet.getClass() == resource) {
 					Player player = Bukkit.getPlayer(nick);
 					ResourcePackHandler handler;
 					if (player == null || (handler = resourcePackHandler.remove(player.getUniqueId())) == null)
 						return;
-					handler.call(player, ResourcePackResult.valueOf(Ref.isNewerThan(16) ? getLegacyNameOf(Ref.get(packet, Ref.isNewerThan(16) ? "a" : "status").toString())
-							: Ref.get(packet, Ref.isNewerThan(16) ? "a" : "status").toString()));
+					handler.call(player, ResourcePackResult.valueOf(getLegacyNameOf(rpStatusField.toString())));
 					return;
 				}
 				// GUIS
-				if (packet.getClass() == BukkitLoader.itemname) {
+				if (packet.getClass() == itemname) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player == null)
 						return;
 					HolderGUI gui = BukkitLoader.this.gui.get(player.getUniqueId());
 					if (gui instanceof AnvilGUI) {
 						BukkitLoader.nmsProvider.postToMainThread(() -> {
-							((AnvilGUI) gui).setRepairText(buildText(Ref.get(packet, "a") + ""));
+							((AnvilGUI) gui).setRepairText(buildText(anvilText + ""));
 						});
 						packetContainer.setCancelled(true);
 					}
 					return;
 				}
-				if (packet.getClass() == BukkitLoader.close) {
+				if (packet.getClass() == close) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player == null)
 						return;
@@ -242,7 +258,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 					packetContainer.setCancelled(true);
 					return;
 				}
-				if (packet.getClass() == BukkitLoader.click) {
+				if (packet.getClass() == click) {
 					Player player = Bukkit.getPlayer(nick);
 					if (player == null)
 						return;
@@ -262,7 +278,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 				case 'd':
 					return "ACCEPTED";
 				}
-				return null;
+				return string;
 			}
 		}.register();
 
@@ -288,17 +304,16 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	}
 
 	private void loadProvider(boolean canUseJavaFile) throws Exception {
+		String serverVersion = Ref.serverVersion().replace('.', '_');
+		if (!serverVersion.startsWith("v"))
+			serverVersion = 'v' + serverVersion;
 		if (ToolProvider.getSystemJavaCompiler() != null && !canUseJavaFile)
 			try {
 				getAllJarFiles();
 				checkForUpdateAndDownload();
-				if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
-					if (Ref.isNewerThan(19) && Ref.serverType() == ServerType.PAPER && Ref.serverVersionRelease() >= 5)
-						nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms.v" + Ref.serverVersion().replace('_', '.'),
-								new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
-					else
-						nmsProvider = (NmsProvider) new MemoryCompiler(Bukkit.getServer().getClass().getClassLoader(), "me.devtec.theapi.bukkit.nms." + Ref.serverVersion(),
-								new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java")).buildClass().newInstance();
+				if (new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".java").exists()) {
+					nmsProvider = (NmsProvider) new MemoryCompiler(NO_OBFUSCATED_NMS_MODE ? getClassLoader() : Bukkit.getServer().getClass().getClassLoader(),
+							"me.devtec.theapi.bukkit.nms." + serverVersion, new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".java")).buildClass().newInstance();
 					if (nmsProvider != null)
 						nmsProvider.loadParticles();
 				}
@@ -306,12 +321,9 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 				err.printStackTrace();
 				Bukkit.getConsoleSender().sendMessage(ColorUtils.colorize("&7> &4Error! Failed to load NmsProvider from .java file, loading from .jar."));
 				checkForUpdateAndDownloadCompiled();
-				if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists())
-					try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar" + "!/") }, getClassLoader())) {
-						Class<?> c;
-						if (Ref.isNewerThan(19) && Ref.serverType() == ServerType.PAPER && Ref.serverVersionRelease() >= 5)
-							c = cl.loadClass("me.devtec.theapi.bukkit.nms.v" + Ref.serverVersion().replace('_', '.'));
-						c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
+				if (new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".jar").exists())
+					try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + serverVersion + ".jar" + "!/") }, getClassLoader())) {
+						Class<?> c = cl.loadClass("me.devtec.theapi.bukkit.nms." + serverVersion);
 						nmsProvider = (NmsProvider) c.newInstance();
 						if (nmsProvider != null)
 							nmsProvider.loadParticles();
@@ -321,12 +333,9 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 			}
 		else { // JRE
 			checkForUpdateAndDownloadCompiled();
-			if (new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists())
-				try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar" + "!/") }, getClassLoader())) {
-					Class<?> c;
-					if (Ref.isNewerThan(19) && Ref.serverType() == ServerType.PAPER && Ref.serverVersionRelease() >= 5)
-						c = cl.loadClass("me.devtec.theapi.bukkit.nms.v" + Ref.serverVersion().replace('_', '.'));
-					c = cl.loadClass("me.devtec.theapi.bukkit.nms." + Ref.serverVersion());
+			if (new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".jar").exists())
+				try (URLClassLoader cl = new URLClassLoader(new URL[] { new URL("jar:file:" + "plugins/TheAPI/NmsProviders/" + serverVersion + ".jar" + "!/") }, getClassLoader())) {
+					Class<?> c = cl.loadClass("me.devtec.theapi.bukkit.nms." + serverVersion);
 					nmsProvider = (NmsProvider) c.newInstance();
 					if (nmsProvider != null)
 						nmsProvider.loadParticles();
@@ -500,6 +509,9 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	}
 
 	private void checkForUpdateAndDownloadCompiled() {
+		String serverVersion = Ref.serverVersion().replace('.', '_');
+		if (!serverVersion.startsWith("v"))
+			serverVersion = 'v' + serverVersion;
 		try {
 			Config gitVersion = Config.loadFromInput(new URL("https://raw.githubusercontent.com/TheDevTec/TheAPI/master/version.yml").openStream());
 
@@ -510,20 +522,19 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 
 			Version ver = VersionUtils.getVersion(gitVersion.getString("release"), "" + release);
 
-			if (ver != Version.OLDER_VERSION && ver != Version.SAME_VERSION && new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists()) {
+			if (ver != Version.OLDER_VERSION && ver != Version.SAME_VERSION && new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".jar").exists()) {
 				Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §cERROR! Can't download new NmsProvider, please update TheAPI.");
 				localVersion.save(DataType.YAML);
 				return;
 			}
-			if (localVersion.getInt("build") < gitVersion.getInt("build") || !new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").exists()
-					|| new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar").length() == 0) {
+			if (localVersion.getInt("build") < gitVersion.getInt("build") || !new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".jar").exists()
+					|| new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".jar").length() == 0) {
 				localVersion.set("build", gitVersion.getInt("build"));
 				localVersion.save(DataType.YAML);
 
-				URL url = new URL(
-						"https://raw.githubusercontent.com/TheDevTec/TheAPI/master/NmsProvider%20-%20" + Ref.serverVersion().substring(1).replace("_", ".") + "/" + Ref.serverVersion() + ".jar");
+				URL url = new URL("https://raw.githubusercontent.com/TheDevTec/TheAPI/master/NmsProvider%20-%20" + serverVersion.substring(1) + "/" + serverVersion + ".jar");
 				Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §aDownloading update!");
-				API.library.downloadFileFromUrl(url, new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".jar"));
+				API.library.downloadFileFromUrl(url, new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".jar"));
 			}
 		} catch (Exception e) {
 			Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §eNot found NmsProvider for your server version, do you have your own?");
@@ -531,6 +542,9 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	}
 
 	private void checkForUpdateAndDownload() {
+		String serverVersion = Ref.serverVersion().replace('.', '_');
+		if (!serverVersion.startsWith("v"))
+			serverVersion = 'v' + serverVersion;
 		try {
 			Config gitVersion = Config.loadFromInput(new URL("https://raw.githubusercontent.com/TheDevTec/TheAPI/master/version.yml").openStream());
 
@@ -541,21 +555,21 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 
 			Version ver = VersionUtils.getVersion(gitVersion.getString("release"), "" + release);
 
-			if (ver != Version.OLDER_VERSION && ver != Version.SAME_VERSION && new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
+			if (ver != Version.OLDER_VERSION && ver != Version.SAME_VERSION && new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".java").exists()) {
 				Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §cERROR! Can't download new NmsProvider, please update TheAPI.");
 				Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §cERROR! Current release: " + release);
 				Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §cERROR! Required release: " + gitVersion.getString("release"));
 				localVersion.save(DataType.YAML);
 				return;
 			}
-			if (localVersion.getInt("build") < gitVersion.getInt("build") || !new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java").exists()) {
+			if (localVersion.getInt("build") < gitVersion.getInt("build") || !new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".java").exists()) {
 				localVersion.set("build", gitVersion.getInt("build"));
 				localVersion.save(DataType.YAML);
 
-				URL url = new URL("https://raw.githubusercontent.com/TheDevTec/TheAPI/master/NmsProvider%20-%20" + Ref.serverVersion().substring(1).replace("_", ".")
-						+ "/src/me/devtec/theapi/bukkit/nms/" + Ref.serverVersion() + ".java");
+				URL url = new URL(
+						"https://raw.githubusercontent.com/TheDevTec/TheAPI/master/NmsProvider%20-%20" + serverVersion.substring(1) + "/src/me/devtec/theapi/bukkit/nms/" + serverVersion + ".java");
 				Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §aDownloading update!");
-				API.library.downloadFileFromUrl(url, new File("plugins/TheAPI/NmsProviders/" + Ref.serverVersion() + ".java"));
+				API.library.downloadFileFromUrl(url, new File("plugins/TheAPI/NmsProviders/" + serverVersion + ".java"));
 			}
 		} catch (Exception e) {
 			Bukkit.getConsoleSender().sendMessage("[TheAPI NmsProvider Updater] §eNot found NmsProvider for your server version, do you have your own?");

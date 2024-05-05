@@ -13,6 +13,7 @@ import me.devtec.shared.json.Json;
 import me.devtec.theapi.bukkit.BukkitLoader;
 
 public class BlockDataStorage implements Cloneable {
+	private static final Class<?> blockDataClass = Ref.getClass("org.bukkit.block.data.BlockData");
 
 	private Material type;
 	private byte itemData;
@@ -128,7 +129,7 @@ public class BlockDataStorage implements Cloneable {
 			BlockState blockState = (BlockState) obj;
 			return type == blockState.getType() && itemData == blockState.getRawData();
 		}
-		if (obj.getClass().equals(Ref.getClass("org.bukkit.block.data.BlockData"))) {
+		if (obj.getClass().equals(blockDataClass)) {
 			BlockData blockData = (BlockData) obj;
 			String asString = blockData.getAsString();
 			if (asString.contains("["))

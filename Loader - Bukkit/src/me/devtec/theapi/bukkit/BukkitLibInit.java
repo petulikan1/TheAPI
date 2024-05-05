@@ -600,9 +600,7 @@ public class BukkitLibInit {
 						if (meta.hasCustomModelData())
 							map.put("meta.customModelData", meta.getCustomModelData());
 
-					System.out.println(item.getItemMeta());
 					NBTEdit nbt = new NBTEdit(item);
-					System.out.println(nbt.getNBT());
 					// remove unused tags
 					nbt.remove("id");
 					nbt.remove("Count");

@@ -30,10 +30,10 @@ import me.devtec.theapi.bukkit.BukkitLoader;
 
 @SuppressWarnings("unchecked")
 public class PacketHandlerModern implements PacketHandler<Channel> {
-	private static final Class<?> login = Ref.nms("network.protocol.login", "PacketLoginInStart");
-	private static final Class<?> postlogin = Ref.nms("network.protocol.login", "PacketLoginOutSuccess");
-	static final Field f = Ref.field(PacketHandlerModern.login, "a");
-	static final Field fPost = Ref.field(PacketHandlerModern.postlogin, "a");
+	private static Class<?> login;
+	private static Class<?> postlogin;
+	private static Field name;
+	private static Field gameprofile;
 	private final Map<String, Channel> channelLookup = new ConcurrentHashMap<>();
 	private List<ChannelFuture> networkManagers;
 	private final List<Channel> serverChannels = new ArrayList<>();
@@ -44,7 +44,19 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 	protected volatile boolean closed;
 
 	public PacketHandlerModern(boolean lateBind) {
-		serverConnection = Ref.get(BukkitLoader.getNmsProvider().getMinecraftServer(), Ref.nms("server.network", "ServerConnection"));
+		if (BukkitLoader.NO_OBFUSCATED_NMS_MODE) {
+			serverConnection = Ref.get(BukkitLoader.getNmsProvider().getMinecraftServer(), Ref.nms("server.network", "ServerConnectionListener"));
+			login = Ref.nms("network.protocol.login", "ServerboundHelloPacket");
+			name = Ref.field(login, "name");
+			postlogin = Ref.nms("network.protocol.login", "ClientboundGameProfilePacket");
+			gameprofile = Ref.field(postlogin, "gameProfile");
+		} else {
+			serverConnection = Ref.get(BukkitLoader.getNmsProvider().getMinecraftServer(), Ref.nms("server.network", "ServerConnection"));
+			login = Ref.nms("network.protocol.login", "PacketLoginInStart");
+			postlogin = Ref.nms("network.protocol.login", "PacketLoginOutSuccess");
+			name = Ref.field(login, "a");
+			gameprofile = Ref.field(postlogin, "a");
+		}
 		if (serverConnection == null)
 			return;
 		if (lateBind) {
@@ -73,9 +85,22 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 				hasTicked = "ac";
 				break;
 			case 20:
-				hasTicked = "ad";
+				switch (Ref.serverVersionRelease()) {
+				case 1:
+				case 2:
+					hasTicked = "ad";
+					break;
+				case 3:
+					hasTicked = "ah";
+					break;
+				case 4:
+					hasTicked = "ag";
+					break;
+				}
 				break;
 			}
+			if (BukkitLoader.NO_OBFUSCATED_NMS_MODE)
+				hasTicked = "isReady";
 			while (!(boolean) Ref.get(BukkitLoader.getNmsProvider().getMinecraftServer(), hasTicked))
 				try {
 					Thread.sleep(20);
@@ -133,7 +158,9 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 	}
 
 	private void registerChannelHandler() {
-		if (Ref.isNewerThan(16))
+		if (BukkitLoader.NO_OBFUSCATED_NMS_MODE)
+			networkManagers = (List<ChannelFuture>) Ref.get(serverConnection, "channels");
+		else if (Ref.isNewerThan(16))
 			networkManagers = (List<ChannelFuture>) Ref.get(serverConnection, "f");
 		else
 			networkManagers = (List<ChannelFuture>) (Ref.get(serverConnection, "listeningChannels") != null ? Ref.get(serverConnection, "listeningChannels") : Ref.get(serverConnection, "g"));
@@ -351,7 +378,7 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 			Object packet = msg;
 			synchronized (packet) {
 				if (packet.getClass() == PacketHandlerModern.login) {
-					player = Ref.isNewerThan(18) ? (String) Ref.get(packet, PacketHandlerModern.f) : ((GameProfile) Ref.get(packet, PacketHandlerModern.f)).getName();
+					player = Ref.isNewerThan(18) ? (String) Ref.get(packet, PacketHandlerModern.name) : ((GameProfile) Ref.get(packet, PacketHandlerModern.name)).getName();
 					channelLookup.put(player, channel);
 				}
 				try {
@@ -371,7 +398,7 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 			synchronized (packet) {
 				if (player == null && packet.getClass() == PacketHandlerModern.postlogin) { // ProtocolLib cancelled
 					// packets
-					player = Ref.isNewerThan(18) ? (String) Ref.get(packet, PacketHandlerModern.f) : ((GameProfile) Ref.get(packet, PacketHandlerModern.f)).getName();
+					player = ((GameProfile) Ref.get(packet, PacketHandlerModern.gameprofile)).getName();
 					channelLookup.put(player, channel);
 				}
 				try {

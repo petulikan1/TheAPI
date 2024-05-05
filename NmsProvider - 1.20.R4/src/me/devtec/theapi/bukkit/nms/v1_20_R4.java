@@ -168,7 +168,6 @@ import net.minecraft.world.scores.criteria.IScoreboardCriteria.EnumScoreboardHea
 
 public class v1_20_R4 implements NmsProvider {
 	private static final MinecraftServer server = MinecraftServer.getServer();
-	private static final sun.misc.Unsafe unsafe = (sun.misc.Unsafe) Ref.getNulled(Ref.field(sun.misc.Unsafe.class, "theUnsafe"));
 	private static final IChatBaseComponent empty = IChatBaseComponent.b("");
 	private static final CommandBuildContext dispatcher = CommandDispatcher.a(VanillaRegistries.a());
 
@@ -199,9 +198,7 @@ public class v1_20_R4 implements NmsProvider {
 
 	@Override
 	public Object getChunk(Chunk chunk) {
-		if (isPaperChunkRework)
-			return ((CraftChunk) chunk).getHandle(ChunkStatus.n);
-		return Ref.invoke(chunk, getNmsChunkHandle);
+		return ((CraftChunk) chunk).getHandle(ChunkStatus.n);
 	}
 
 	@Override
@@ -314,11 +311,7 @@ public class v1_20_R4 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardObjective() {
-		try {
-			return v1_20_R4.unsafe.allocateInstance(PacketPlayOutScoreboardObjective.class);
-		} catch (Exception e) {
-			return null;
-		}
+		return Ref.newUnsafeInstance(PacketPlayOutScoreboardObjective.class);
 	}
 
 	@Override
@@ -328,16 +321,12 @@ public class v1_20_R4 implements NmsProvider {
 
 	@Override
 	public Object packetScoreboardTeam() {
-		try {
-			return v1_20_R4.unsafe.allocateInstance(PacketPlayOutScoreboardTeam.class);
-		} catch (Exception e) {
-			return null;
-		}
+		return Ref.newUnsafeInstance(PacketPlayOutScoreboardTeam.class);
 	}
 
 	@Override
 	public Object packetScoreboardScore(Action action, String player, String line, int score) {
-		return new PacketPlayOutScoreboardScore(line, player, score, null, null);
+		return new PacketPlayOutScoreboardScore(line, player, score, Optional.ofNullable(null), Optional.ofNullable(null));
 	}
 
 	@Override
@@ -390,7 +379,7 @@ public class v1_20_R4 implements NmsProvider {
 
 	private IChatBaseComponent convert(Component c) {
 		if (c instanceof ComponentItem || c instanceof ComponentEntity)
-			return IChatBaseComponent.a(Json.writer().simpleWrite(c.toJsonMap()));
+			return IChatBaseComponent.ChatSerializer.a(Json.writer().simpleWrite(c.toJsonMap()), dispatcher);
 		IChatMutableComponent current = IChatBaseComponent.b(c.getText());
 		ChatModifier modif = current.a();
 		if (c.getColor() != null && !c.getColor().isEmpty())
@@ -477,7 +466,7 @@ public class v1_20_R4 implements NmsProvider {
 		if (co == null)
 			return new IChatBaseComponent[] { empty };
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return new IChatBaseComponent[] { IChatBaseComponent.b(Json.writer().simpleWrite(co.toJsonMap())) };
+			return new IChatBaseComponent[] { IChatBaseComponent.ChatSerializer.a(Json.writer().simpleWrite(co.toJsonMap()), dispatcher) };
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		chat.add(IChatBaseComponent.b(""));
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -501,7 +490,7 @@ public class v1_20_R4 implements NmsProvider {
 		if (co == null)
 			return empty;
 		if (co instanceof ComponentItem || co instanceof ComponentEntity)
-			return IChatBaseComponent.b(Json.writer().simpleWrite(co.toJsonMap()));
+			return IChatBaseComponent.ChatSerializer.a(Json.writer().simpleWrite(co.toJsonMap()), dispatcher);
 		IChatMutableComponent main = IChatBaseComponent.b("");
 		List<IChatBaseComponent> chat = new ArrayList<>();
 		if (co.getText() != null && !co.getText().isEmpty())
@@ -561,8 +550,8 @@ public class v1_20_R4 implements NmsProvider {
 			case SHOW_ITEM: {
 				net.minecraft.network.chat.ChatHoverable.c hover = modif.i().a(EnumHoverAction.b);
 				ComponentItem compEntity = new ComponentItem(CraftMagicNumbers.getMaterial(hover.a().g()).name(), hover.a().I());
-				if (hover.a().v() != null)
-					compEntity.setNbt(hover.a().v().toString());
+				if (hover.a().a() != null)
+					compEntity.setNbt(hover.a().a(CommandDispatcher.a(VanillaRegistries.a())).toString());
 				comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, compEntity));
 				break;
 			}
@@ -679,13 +668,9 @@ public class v1_20_R4 implements NmsProvider {
 		return CraftItemStack.asBukkitCopy(item.w());
 	}
 
-	static Method getNmsChunkHandle = Ref.method(CraftChunk.class, "getHandle");
-
 	@Override
 	public Object getChunk(World world, int x, int z) {
-		if (isPaperChunkRework)
-			return ((CraftChunk) world.getChunkAt(x, z)).getHandle(ChunkStatus.n);
-		return Ref.invoke(world.getChunkAt(x, z), getNmsChunkHandle);
+		return ((CraftChunk) world.getChunkAt(x, z)).getHandle(ChunkStatus.n);
 	}
 
 	@Override
@@ -770,14 +755,9 @@ public class v1_20_R4 implements NmsProvider {
 		chunk.r.l().a().a(new BlockPosition(x, y, z));
 	}
 
-	private static boolean isPaperChunkRework = Ref.getClass("io.papermc.paper.chunk.system.scheduling.ChunkHolderManager") != null;
-	private static Method getBlockStateFinal = Ref.method(net.minecraft.world.level.chunk.Chunk.class, "getBlockStateFinal", int.class, int.class, int.class);
-
 	@Override
 	public Object getBlock(Object objChunk, int x, int y, int z) {
 		net.minecraft.world.level.chunk.Chunk chunk = (net.minecraft.world.level.chunk.Chunk) objChunk;
-		if (isPaperChunkRework)
-			return Ref.invoke(chunk, getBlockStateFinal, x, y, z); // Modern getting of blocks, Thx PaperSpigot!
 		int highY = chunk.e(y);
 		if (highY < 0)
 			return Blocks.a.o();
@@ -1000,7 +980,7 @@ public class v1_20_R4 implements NmsProvider {
 		InventoryClickType type = packet.i();
 		Container c = (Container) container;
 
-		if (packet.e() < -1 && packet.e() != -999)
+		if (slot < -1 && slot != -999)
 			return true;
 
 		EntityHuman nPlayer = ((CraftPlayer) player).getHandle();
@@ -1104,7 +1084,7 @@ public class v1_20_R4 implements NmsProvider {
 			c.b();
 			break;
 		default:
-			BukkitLoader.getPacketHandler().send(player, packetSetSlot(id, slot, statusId, c.b(packet.e()).g()));
+			BukkitLoader.getPacketHandler().send(player, packetSetSlot(id, slot, statusId, c.b(slot).g()));
 			break;
 		}
 		return true;
@@ -1167,7 +1147,7 @@ public class v1_20_R4 implements NmsProvider {
 				c.b();
 			for (final it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<net.minecraft.world.item.ItemStack> entry : Int2ObjectMaps.fastIterable(packet.h()))
 				c.b(entry.getIntKey(), entry.getValue());
-			c.a(packet.f());
+			c.a(packet.g());
 			c.i();
 			if (packet.j() != c.j())
 				c.e();
@@ -1240,7 +1220,7 @@ public class v1_20_R4 implements NmsProvider {
 							}
 					slot.b();
 					if (player instanceof EntityPlayer && slot.a() != 64) {
-						BukkitLoader.getPacketHandler().send((Player) player.getBukkitEntity(), BukkitLoader.getNmsProvider().packetSetSlot(j, slot.e, container.k(), slot.g()));
+						BukkitLoader.getPacketHandler().send((Player) player.getBukkitEntity(), BukkitLoader.getNmsProvider().packetSetSlot(j, slot.d, container.k(), slot.g()));
 						if (container.getBukkitView().getType() == InventoryType.WORKBENCH || container.getBukkitView().getType() == InventoryType.CRAFTING)
 							BukkitLoader.getPacketHandler().send((Player) player.getBukkitEntity(), BukkitLoader.getNmsProvider().packetSetSlot(j, 0, container.k(), container.b(0).g()));
 					}
@@ -1392,7 +1372,7 @@ public class v1_20_R4 implements NmsProvider {
 							final int k1 = Math.min(itemstack2.j(), slot2.a_(itemstack2));
 							final int l2 = Math.min(Container.a(mod, t, itemstack2) + j1, k1);
 							l -= l2 - j1;
-							draggedSlots.put(slot2.e, itemstack2.c(l2));
+							draggedSlots.put(slot2.d, itemstack2.c(l2));
 						}
 					}
 					final InventoryView view = container.getBukkitView();
@@ -1679,16 +1659,12 @@ public class v1_20_R4 implements NmsProvider {
 		return new ClientboundPlayerInfoUpdatePacket(action, (EntityPlayer) getPlayer(player));
 	}
 
-	static boolean MODERN_CLIENTBOUND_PACKET = Ref.constructor(ClientboundPlayerInfoUpdatePacket.class, EnumSet.class, List.class) == null;
 	static Field setField, listField;
 	static Constructor<?> clientboundConstructor;
 
 	static {
-		if (MODERN_CLIENTBOUND_PACKET) {
-			setField = Ref.field(ClientboundPlayerInfoUpdatePacket.class, "a");
-			listField = Ref.field(ClientboundPlayerInfoUpdatePacket.class, "b");
-		} else
-			clientboundConstructor = Ref.constructor(ClientboundPlayerInfoUpdatePacket.class, EnumSet.class, List.class);
+		setField = Ref.field(ClientboundPlayerInfoUpdatePacket.class, "b");
+		listField = Ref.field(ClientboundPlayerInfoUpdatePacket.class, "c");
 	}
 
 	@Override
@@ -1710,19 +1686,13 @@ public class v1_20_R4 implements NmsProvider {
 			action = a.e;
 			break;
 		}
-		EnumSet<ClientboundPlayerInfoUpdatePacket.a> set = EnumSet.of(action);
-		List<ClientboundPlayerInfoUpdatePacket.b> list = Collections.emptyList();
-		ClientboundPlayerInfoUpdatePacket packet;
-		if (MODERN_CLIENTBOUND_PACKET) {
-			packet = (ClientboundPlayerInfoUpdatePacket) Ref.newUnsafeInstance(ClientboundPlayerInfoUpdatePacket.class);
-			Ref.set(packet, setField, set);
-			Ref.set(packet, listField, list);
-		} else
-			packet = (ClientboundPlayerInfoUpdatePacket) Ref.newInstance(clientboundConstructor, set, list);
-		packet.f()
-				.add(new ClientboundPlayerInfoUpdatePacket.b(gameProfile.getUUID(), (GameProfile) toGameProfile(gameProfile), true, latency,
-						gameMode == null ? EnumGamemode.a : EnumGamemode.a(gameMode.name().toLowerCase()),
-						(IChatBaseComponent) (playerName == null ? toIChatBaseComponent(new Component(gameProfile.getUsername())) : toIChatBaseComponent(playerName)), null));
+		EnumSet<a> set = EnumSet.of(action);
+		List<ClientboundPlayerInfoUpdatePacket.b> list = Arrays.asList(new ClientboundPlayerInfoUpdatePacket.b(gameProfile.getUUID(), (GameProfile) toGameProfile(gameProfile), true, latency,
+				gameMode == null ? EnumGamemode.a : EnumGamemode.a(gameMode.name().toLowerCase()),
+				(IChatBaseComponent) (playerName == null ? toIChatBaseComponent(new Component(gameProfile.getUsername())) : toIChatBaseComponent(playerName)), null));
+		ClientboundPlayerInfoUpdatePacket packet = (ClientboundPlayerInfoUpdatePacket) Ref.newUnsafeInstance(ClientboundPlayerInfoUpdatePacket.class);
+		Ref.set(packet, setField, set);
+		Ref.set(packet, listField, list);
 		return packet;
 	}
 

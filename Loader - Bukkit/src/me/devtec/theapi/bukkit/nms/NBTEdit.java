@@ -25,7 +25,7 @@ public class NBTEdit {
 			this.nbt = BukkitLoader.getNmsProvider().parseNBT((String) nbt);
 		else if (nbt instanceof NBTEdit)
 			this.nbt = ((NBTEdit) nbt).nbt;
-		else if (nbt.getClass() == Ref.nms("nbt", "NBTTagCompound"))
+		else if (nbt.getClass() == Ref.nms("nbt", BukkitLoader.NO_OBFUSCATED_NMS_MODE ? "Tag" : "NBTTagCompound"))
 			this.nbt = nbt;
 
 		if (this.nbt == null)
@@ -82,7 +82,7 @@ public class NBTEdit {
 			this.nbt = BukkitLoader.getNmsProvider().parseNBT((String) nbt);
 		else if (nbt instanceof NBTEdit)
 			this.nbt = ((NBTEdit) nbt).nbt;
-		else if (nbt.getClass() == Ref.nms("nbt", "NBTTagCompound"))
+		else if (nbt.getClass() == Ref.nms("nbt", BukkitLoader.NO_OBFUSCATED_NMS_MODE ? "Tag" : "NBTTagCompound"))
 			this.nbt = nbt;
 
 		if (this.nbt == null)
@@ -192,5 +192,10 @@ public class NBTEdit {
 
 	public short getShort(String path) {
 		return BukkitLoader.getNmsProvider().getShort(nbt, path);
+	}
+
+	@Override
+	public String toString() {
+		return nbt == null ? "NBTEdit(null)" : nbt.toString();
 	}
 }
