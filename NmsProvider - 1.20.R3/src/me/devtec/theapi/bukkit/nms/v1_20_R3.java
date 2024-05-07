@@ -133,6 +133,7 @@ import net.minecraft.server.ScoreboardServer;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.world.entity.EntityLiving;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.EntityHuman;
@@ -828,9 +829,11 @@ public class v1_20_R3 implements NmsProvider {
 		return ((EntityPlayer) getPlayer(player)).c;
 	}
 
+	private static Field networkManagerField = Ref.field(ServerCommonPacketListenerImpl.class, NetworkManager.class);
+
 	@Override
 	public Object getConnectionNetwork(Object playercon) {
-		return ((PlayerConnection) playercon).c;
+		return Ref.get(playercon, networkManagerField);
 	}
 
 	@Override
