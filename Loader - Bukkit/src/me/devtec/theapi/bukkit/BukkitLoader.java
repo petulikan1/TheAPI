@@ -69,7 +69,7 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	public static final boolean NO_OBFUSCATED_NMS_MODE;
 	static {
 		BukkitLibInit.initTheAPI();
-		NO_OBFUSCATED_NMS_MODE = Ref.isNewerThan(20) && Ref.serverType() == ServerType.PAPER || Ref.isNewerThan(19) && Ref.serverVersionRelease() >= 5 && Ref.serverType() == ServerType.PAPER;
+		NO_OBFUSCATED_NMS_MODE = Ref.isNewerThan(20) && Ref.serverType() == ServerType.PAPER || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 5 && Ref.serverType() == ServerType.PAPER;
 	}
 
 	// public APIs
