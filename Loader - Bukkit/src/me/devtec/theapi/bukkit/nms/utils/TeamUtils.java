@@ -169,7 +169,9 @@ public class TeamUtils {
 		Ref.set(packet, objectiveName, name);
 		if (Ref.isNewerThan(7))
 			Ref.set(packet, renderType, BukkitLoader.getNmsProvider().getEnumScoreboardHealthDisplay(type));
-		if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 3)
+		if (Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() == 3)
+			Ref.set(packet, TeamUtils.numberFormat, numberFormat == null ? null : numberFormat.isPresent() ? numberFormat.get() : null);
+		else if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() > 3)
 			Ref.set(packet, TeamUtils.numberFormat, numberFormat);
 		Ref.set(packet, objectiveMethod, mode);
 		return packet;
