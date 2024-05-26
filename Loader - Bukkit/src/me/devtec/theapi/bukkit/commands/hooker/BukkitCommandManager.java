@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -34,8 +33,11 @@ public class BukkitCommandManager implements CommandsRegister {
 	private static Constructor<?> constructor;
 
 	static {
-		cmdMap = (CommandMap) Ref.get(Bukkit.getPluginManager(), "commandMap");
-		Ref.set(cmdMap, "knownCommands", knownCommands = new ConcurrentHashMap<>((Map<String, Command>) Ref.get(cmdMap, "knownCommands"))); // For safe manipulation
+		if (Bukkit.getPluginManager().getClass().getSimpleName().equals("PaperPluginManagerImpl")) // For future updates from paper side
+			cmdMap = (CommandMap) Ref.get(Ref.get(Bukkit.getPluginManager(), "instanceManager"), "commandMap");
+		else
+			cmdMap = (CommandMap) Ref.get(Bukkit.getPluginManager(), "commandMap");
+		knownCommands = (Map<String, Command>) Ref.get(cmdMap, "knownCommands");
 		constructor = Ref.constructor(PluginCommand.class, String.class, Plugin.class);
 	}
 
