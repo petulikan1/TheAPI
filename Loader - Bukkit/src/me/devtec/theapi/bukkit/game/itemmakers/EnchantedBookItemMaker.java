@@ -9,6 +9,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import me.devtec.shared.Ref;
+import me.devtec.theapi.bukkit.game.EnchantmentAPI;
 import me.devtec.theapi.bukkit.game.ItemMaker;
 
 public class EnchantedBookItemMaker extends ItemMaker {
@@ -25,6 +26,17 @@ public class EnchantedBookItemMaker extends ItemMaker {
 			iMeta.setDisplayName(super.displayName);
 		if (super.lore != null)
 			iMeta.setLore(super.lore);
+		if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 4)
+			meta.setEnchantmentGlintOverride(true);
+		else {
+			if (itemFlags != null) {
+				itemFlags.add("HIDE_ENCHANTS");
+				itemFlags.add("HIDE_ATTRIBUTES");
+			} else
+				itemFlags("HIDE_ENCHANTS", "HIDE_ATTRIBUTES");
+			if (enchants == null || enchants != null && enchants.isEmpty())
+				enchant(EnchantmentAPI.DURABILITY.getEnchantment(), 1);
+		}
 		if (super.enchants != null)
 			for (Entry<Enchantment, Integer> s : super.enchants.entrySet())
 				iMeta.addStoredEnchant(s.getKey(), s.getValue(), true);

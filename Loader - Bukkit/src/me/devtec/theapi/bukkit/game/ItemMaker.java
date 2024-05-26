@@ -1,6 +1,7 @@
 package me.devtec.theapi.bukkit.game;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -79,6 +80,7 @@ public class ItemMaker implements Cloneable {
 	protected boolean unbreakable;
 	protected byte data;
 	protected NBTEdit nbt;
+	protected boolean enchantedGlow;
 
 	protected ItemMaker(Material material) {
 		this.material = material;
@@ -138,6 +140,18 @@ public class ItemMaker implements Cloneable {
 			meta.setDisplayName(displayName);
 		if (lore != null)
 			meta.setLore(lore);
+		if (enchantedGlow)
+			if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 4)
+				meta.setEnchantmentGlintOverride(true);
+			else {
+				if (itemFlags != null) {
+					itemFlags.add("HIDE_ENCHANTS");
+					itemFlags.add("HIDE_ATTRIBUTES");
+				} else
+					itemFlags("HIDE_ENCHANTS", "HIDE_ATTRIBUTES");
+				if (enchants == null || enchants != null && enchants.isEmpty())
+					enchant(EnchantmentAPI.DURABILITY.getEnchantment(), 1);
+			}
 		if (enchants != null)
 			for (Entry<Enchantment, Integer> s : enchants.entrySet())
 				meta.addEnchant(s.getKey(), s.getValue(), true);
@@ -331,15 +345,11 @@ public class ItemMaker implements Cloneable {
 	}
 
 	public ItemMaker enchanted() {
-		if (itemFlags != null) {
-			itemFlags.add("HIDE_ENCHANTS");
-			itemFlags.add("HIDE_ATTRIBUTES");
-		} else
-			itemFlags("HIDE_ENCHANTS", "HIDE_ATTRIBUTES");
-		if (enchants == null || enchants != null && enchants.isEmpty())
-			return enchant(Enchantment.DURABILITY, 1);
+		enchantedGlow = true;
 		return this;
 	}
+
+	private Method getBaseColor = Ref.method(BannerMeta.class, "getBaseColor");
 
 	public ItemMaker itemMeta(ItemMeta meta) {
 		XMaterial xmaterial = XMaterial.matchXMaterial(material);
@@ -347,7 +357,12 @@ public class ItemMaker implements Cloneable {
 
 		if (material.name().contains("BANNER")) {
 			BannerMeta banner = (BannerMeta) meta;
-			maker = ofBanner(BannerColor.valueOf(banner.getBaseColor() != null ? banner.getBaseColor().toString().toUpperCase() : "NONE"));
+			if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 4)
+				maker = ofBanner(BannerColor.fromType(xmaterial));
+			else {
+				Object color = Ref.invoke(banner, getBaseColor);
+				maker = ofBanner(color != null ? BannerColor.valueOf(color.toString().toUpperCase()) : BannerColor.NONE);
+			}
 			List<Pattern> patternlist = banner.getPatterns();
 			if (!patternlist.isEmpty())
 				((BannerItemMaker) maker).patterns(patternlist);
@@ -769,8 +784,6 @@ public class ItemMaker implements Cloneable {
 				}
 			} else if (type.name().contains("POTION") && meta instanceof PotionMeta) {
 				PotionMeta potion = (PotionMeta) meta;
-				if (Ref.isNewerThan(9))
-					config.set(path + "potion.type", potion.getBasePotionData().getType().name());
 				List<String> effects = new ArrayList<>();
 				for (PotionEffect effect : potion.getCustomEffects())
 					effects.add(effect.getType().getName() + ":" + effect.getDuration() + ":" + effect.getAmplifier() + ":" + effect.isAmbient() + ":" + effect.hasParticles());
