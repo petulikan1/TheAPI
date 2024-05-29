@@ -870,7 +870,6 @@ public class v1_20_6 implements NmsProvider {
 
 	@Override
 	public void closeGUI(Player player, Object container, boolean closePacket) {
-		player.closeInventory();
 		if (closePacket)
 			BukkitLoader.getPacketHandler().send(player, new ClientboundContainerClosePacket(((AbstractContainerMenu) container).containerId));
 		net.minecraft.world.entity.player.Player nmsPlayer = (net.minecraft.world.entity.player.Player) getPlayer(player);
@@ -1717,12 +1716,15 @@ public class v1_20_6 implements NmsProvider {
 		return profile;
 	}
 
+	private Field name = Ref.field(Property.class, "name"), value = Ref.field(Property.class, "value"), signature = Ref.field(Property.class, "signature");
+
 	@Override
 	public GameProfileHandler fromGameProfile(Object gameProfile) {
 		GameProfile profile = (GameProfile) gameProfile;
 		GameProfileHandler handler = GameProfileHandler.of(profile.getName(), profile.getId());
 		for (Entry<String, Property> entry : profile.getProperties().entries())
-			handler.getProperties().put(entry.getKey(), PropertyHandler.of(entry.getValue().name(), entry.getValue().value(), entry.getValue().signature()));
+			handler.getProperties().put(entry.getKey(),
+					PropertyHandler.of((String) Ref.get(entry.getValue(), name), (String) Ref.get(entry.getValue(), value), (String) Ref.get(entry.getValue(), signature)));
 		return handler;
 	}
 
