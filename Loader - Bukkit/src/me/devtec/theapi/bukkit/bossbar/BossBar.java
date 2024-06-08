@@ -17,15 +17,16 @@ import me.devtec.theapi.bukkit.BukkitLoader;
 /**
  * 1.7.10 - 1.8.8
  *
- * Updated by StraikerinaCZ 20.10. 2022
+ * Updated by Straikerinos 20.10. 2022
  */
 public class BossBar {
-	private static final Class<?> c = Ref.nms("", "EntityWither");
-	private static final Constructor<?> tpC = Ref.constructor(Ref.nms("", "PacketPlayOutEntityTeleport"));
-	private static final Constructor<?> barOld = Ref.constructor(BossBar.c, Ref.nms("", "World"));
-	private static final Method mLoc = Ref.method(Ref.nms("", "Entity"), "setLocation", double.class, double.class, double.class, float.class, float.class);
-	private static final Method set = Ref.method(Ref.nms("", "DataWatcher"), "a", int.class, Object.class);
-	private static final Field t = Ref.field(Ref.nms("", "PacketPlayOutSpawnEntityLiving"), "l"); // DataWatcher
+	private static Class<?> witherClass;
+	private static Constructor<?> teleportPacket;
+	private static Constructor<?> entityWitcherConstructor;
+	private static Constructor<?> dataWatcherConstructor;
+	private static Method setLocation;
+	private static Method setDataWatcherValue;
+	private static Field dataWatcherField;
 
 	private final Player holder;
 	private World before;
@@ -38,7 +39,14 @@ public class BossBar {
 	private int entityId;
 
 	static {
-		if (Ref.isOlderThan(9))
+		if (Ref.isOlderThan(9)) {
+			witherClass = Ref.nms("", "EntityWither");
+			teleportPacket = Ref.constructor(Ref.nms("", "PacketPlayOutEntityTeleport"));
+			entityWitcherConstructor = Ref.constructor(BossBar.witherClass, Ref.nms("", "World"));
+			dataWatcherConstructor = Ref.constructor(Ref.nms("", "DataWatcher"), Ref.nms("", "Entity"));
+			setLocation = Ref.method(Ref.nms("", "Entity"), "setLocation", double.class, double.class, double.class, float.class, float.class);
+			setDataWatcherValue = Ref.method(Ref.nms("", "DataWatcher"), "a", int.class, Object.class);
+			dataWatcherField = Ref.field(Ref.nms("", "PacketPlayOutSpawnEntityLiving"), "l"); // DataWatcher
 			new Tasker() {
 
 				@Override
@@ -47,6 +55,7 @@ public class BossBar {
 						bar.move();
 				}
 			}.runRepeating(1, 1);
+		}
 	}
 
 	public BossBar(Player holder, String text, double progress) {
@@ -67,7 +76,7 @@ public class BossBar {
 			spawnBar(loc);
 			return;
 		}
-		Object packet = Ref.newInstance(BossBar.tpC);
+		Object packet = Ref.newInstance(BossBar.teleportPacket);
 		Ref.set(packet, "a", entityId);
 		Ref.set(packet, "b", (int) (loc.getX() * 32D));
 		Ref.set(packet, "c", (int) (loc.getY() * 32D));
@@ -112,7 +121,7 @@ public class BossBar {
 			return;
 		}
 		Object packet = BukkitLoader.getNmsProvider().packetSpawnEntityLiving(entityBar);
-		Ref.set(packet, t, setupDataWatcher());
+		Ref.set(packet, dataWatcherField, setupDataWatcher());
 		BukkitLoader.getPacketHandler().send(holder, packet);
 		JavaPlugin.getPlugin(BukkitLoader.class).bossbars.add(this);
 	}
@@ -137,22 +146,22 @@ public class BossBar {
 
 	private void spawnBar(Location loc) {
 		before = loc.getWorld();
-		entityBar = Ref.newInstance(BossBar.barOld, BukkitLoader.getNmsProvider().getWorld(loc.getWorld()));
-		Ref.invoke(entityBar, BossBar.mLoc, loc.getX(), loc.getY(), loc.getZ(), 0, 0);
+		entityBar = Ref.newInstance(BossBar.entityWitcherConstructor, BukkitLoader.getNmsProvider().getWorld(loc.getWorld()));
+		Ref.invoke(entityBar, BossBar.setLocation, loc.getX(), loc.getY(), loc.getZ(), 0, 0);
 		entityId = BukkitLoader.getNmsProvider().getEntityId(entityBar);
 		Object packet = BukkitLoader.getNmsProvider().packetSpawnEntityLiving(entityBar);
-		Ref.set(packet, t, setupDataWatcher());
+		Ref.set(packet, dataWatcherField, setupDataWatcher());
 		BukkitLoader.getPacketHandler().send(holder, packet);
 	}
 
 	private Object setupDataWatcher() {
-		Object watcher = Ref.newInstance(Ref.constructor(Ref.nms("", "DataWatcher"), Ref.nms("", "Entity")), (Object) null);
-		Ref.invoke(watcher, set, 0, (byte) 0x20);
-		Ref.invoke(watcher, set, 3, (byte) 1);
-		Ref.invoke(watcher, set, 6, (float) progress);
-		Ref.invoke(watcher, set, 2, title);
-		Ref.invoke(watcher, set, 10, title);
-		Ref.invoke(watcher, set, 20, 200000);
+		Object watcher = Ref.newInstance(dataWatcherConstructor, (Object) null);
+		Ref.invoke(watcher, setDataWatcherValue, 0, (byte) 0x20);
+		Ref.invoke(watcher, setDataWatcherValue, 3, (byte) 1);
+		Ref.invoke(watcher, setDataWatcherValue, 6, (float) progress);
+		Ref.invoke(watcher, setDataWatcherValue, 2, title);
+		Ref.invoke(watcher, setDataWatcherValue, 10, title);
+		Ref.invoke(watcher, setDataWatcherValue, 20, 200000);
 		return watcher;
 	}
 
