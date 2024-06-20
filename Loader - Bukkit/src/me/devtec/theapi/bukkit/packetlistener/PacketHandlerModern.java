@@ -54,8 +54,13 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 			serverConnection = Ref.get(BukkitLoader.getNmsProvider().getMinecraftServer(), Ref.nms("server.network", "ServerConnection"));
 			login = Ref.nms("network.protocol.login", "PacketLoginInStart");
 			postlogin = Ref.nms("network.protocol.login", "PacketLoginOutSuccess");
-			name = Ref.field(login, "a");
-			gameprofile = Ref.field(postlogin, "a");
+			if (Ref.isNewerThan(20) || Ref.serverVersionInt() == 20 && Ref.serverVersionRelease() >= 4) {
+				name = Ref.field(login, "b");
+				gameprofile = Ref.field(postlogin, "b");
+			} else {
+				name = Ref.field(login, "a");
+				gameprofile = Ref.field(postlogin, "a");
+			}
 		}
 		if (serverConnection == null)
 			return;
