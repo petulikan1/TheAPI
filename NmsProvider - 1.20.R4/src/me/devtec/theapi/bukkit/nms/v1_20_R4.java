@@ -914,7 +914,7 @@ public class v1_20_R4 implements NmsProvider {
 		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, legacy, size, title));
 		nmsPlayer.cb.transferTo((Container) container, (CraftPlayer) player);
 		nmsPlayer.cb = (Container) container;
-		nmsPlayer.a((Container) container);
+		postToMainThread(() -> nmsPlayer.a((Container) container));
 		((Container) container).checkReachable = false;
 	}
 
@@ -943,6 +943,7 @@ public class v1_20_R4 implements NmsProvider {
 				for (ItemStack stack : inv.getContents())
 					container.b(slot++).d((net.minecraft.world.item.ItemStack) asNMSItem(stack));
 			});
+			container.checkReachable = false;
 			return container;
 		}
 		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());

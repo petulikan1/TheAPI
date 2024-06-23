@@ -27,6 +27,7 @@ import javax.imageio.ImageIO;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
@@ -906,7 +907,7 @@ public class v1_20_6 implements NmsProvider {
 		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, legacy, size, title));
 		nmsPlayer.containerMenu.transferTo((AbstractContainerMenu) container, (CraftPlayer) player);
 		nmsPlayer.containerMenu = (AbstractContainerMenu) container;
-		nmsPlayer.initMenu((AbstractContainerMenu) container);
+		postToMainThread(() -> nmsPlayer.initMenu((AbstractContainerMenu) container));
 		((AbstractContainerMenu) container).checkReachable = false;
 	}
 
@@ -924,12 +925,18 @@ public class v1_20_6 implements NmsProvider {
 				public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> getter) {
 					return Optional.empty();
 				}
+
+				@Override
+				public Location getLocation() {
+					return null;
+				}
 			});
 			postToMainThread(() -> {
 				int slot = 0;
 				for (ItemStack stack : inv.getContents())
 					container.getSlot(slot++).set((net.minecraft.world.item.ItemStack) asNMSItem(stack));
 			});
+			container.checkReachable = false;
 			return container;
 		}
 		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());

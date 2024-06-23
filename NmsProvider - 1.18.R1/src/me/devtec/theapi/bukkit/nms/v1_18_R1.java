@@ -927,6 +927,7 @@ public class v1_18_R1 implements NmsProvider {
 				for (ItemStack stack : inv.getContents())
 					container.a(slot++).d((net.minecraft.world.item.ItemStack) asNMSItem(stack));
 			});
+			container.checkReachable = false;
 			return container;
 		}
 		return new CraftContainer(inv, ((CraftPlayer) player).getHandle(), ((CraftPlayer) player).getHandle().nextContainerCounter());
