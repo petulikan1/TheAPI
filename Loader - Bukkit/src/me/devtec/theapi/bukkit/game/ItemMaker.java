@@ -366,13 +366,19 @@ public class ItemMaker implements Cloneable {
 			List<Pattern> patternlist = banner.getPatterns();
 			if (!patternlist.isEmpty())
 				((BannerItemMaker) maker).patterns(patternlist);
-		}
+		} else
 
-		if (material.name().contains("LEATHER_")) {
+		if (material.name().contains("SHULKER_BOX")) {
+			BlockStateMeta iMeta = (BlockStateMeta) meta;
+			ShulkerBox shulker = (ShulkerBox) iMeta.getBlockState();
+			maker = ofShulkerBox(ShulkerBoxColor.fromType(xmaterial));
+			((ShulkerBoxItemMaker) maker).name(shulker.getCustomName());
+			((ShulkerBoxItemMaker) maker).contents(shulker.getInventory().getContents());
+		} else if (material.name().contains("LEATHER_")) {
 			LeatherArmorMeta armor = (LeatherArmorMeta) meta;
 			maker = ofLeatherArmor(material);
 			((LeatherItemMaker) maker).color(Color.fromRGB(armor.getColor().asRGB()));
-		}
+		} else
 
 		if (xmaterial == XMaterial.PLAYER_HEAD) {
 			SkullMeta skull = (SkullMeta) meta;
@@ -403,7 +409,7 @@ public class ItemMaker implements Cloneable {
 						((HeadItemMaker) maker).skinValues(value);
 				}
 			}
-		}
+		} else
 
 		if (material.name().contains("POTION")) {
 			PotionMeta potion = (PotionMeta) meta;
@@ -421,6 +427,16 @@ public class ItemMaker implements Cloneable {
 			if (Ref.isNewerThan(10)) // 1.11+
 				if (potion.getColor() != null)
 					((PotionItemMaker) maker).color(potion.getColor());
+		} else if (xmaterial == XMaterial.WRITTEN_BOOK || xmaterial == XMaterial.WRITABLE_BOOK) {
+			BookMeta book = (BookMeta) meta;
+			maker = xmaterial == XMaterial.WRITTEN_BOOK ? ofBook() : ofWritableBook();
+			if (book.getAuthor() != null)
+				((BookItemMaker) maker).rawAuthor(book.getAuthor());
+			if (Ref.isNewerThan(9)) // 1.10+
+				((BookItemMaker) maker).generation(book.getGeneration() == null ? null : book.getGeneration().name());
+			((BookItemMaker) maker).rawTitle(book.getTitle());
+			if (!book.getPages().isEmpty())
+				((BookItemMaker) maker).rawPages(book.getPages());
 		}
 
 		if (xmaterial == XMaterial.ENCHANTED_BOOK) {
@@ -432,18 +448,6 @@ public class ItemMaker implements Cloneable {
 		} else if (meta.getEnchants() != null)
 			for (Entry<Enchantment, Integer> enchant : meta.getEnchants().entrySet())
 				enchant(enchant.getKey(), enchant.getValue());
-
-		if (xmaterial == XMaterial.WRITTEN_BOOK || xmaterial == XMaterial.WRITABLE_BOOK) {
-			BookMeta book = (BookMeta) meta;
-			maker = xmaterial == XMaterial.WRITTEN_BOOK ? ofBook() : ofWritableBook();
-			if (book.getAuthor() != null)
-				((BookItemMaker) maker).rawAuthor(book.getAuthor());
-			if (Ref.isNewerThan(9)) // 1.10+
-				((BookItemMaker) maker).generation(book.getGeneration() == null ? null : book.getGeneration().name());
-			((BookItemMaker) maker).rawTitle(book.getTitle());
-			if (!book.getPages().isEmpty())
-				((BookItemMaker) maker).rawPages(book.getPages());
-		}
 
 		if (meta.getDisplayName() != null)
 			maker.rawDisplayName(meta.getDisplayName());

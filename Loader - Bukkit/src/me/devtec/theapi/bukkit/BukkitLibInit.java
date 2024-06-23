@@ -11,11 +11,8 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -29,11 +26,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.devtec.shared.API;
@@ -62,11 +55,8 @@ import me.devtec.shared.versioning.VersionUtils.Version;
 import me.devtec.theapi.bukkit.commands.hooker.BukkitCommandManager;
 import me.devtec.theapi.bukkit.commands.selectors.BukkitSelectorUtils;
 import me.devtec.theapi.bukkit.game.BlockDataStorage;
-import me.devtec.theapi.bukkit.game.EnchantmentAPI;
 import me.devtec.theapi.bukkit.game.ItemMaker;
 import me.devtec.theapi.bukkit.game.Position;
-import me.devtec.theapi.bukkit.nms.NBTEdit;
-import me.devtec.theapi.bukkit.xseries.XMaterial;
 
 public class BukkitLibInit {
 	private static Method addUrl;
@@ -573,64 +563,9 @@ public class BukkitLibInit {
 
 			@Override
 			public Map<String, Object> write(Object object) {
-				Map<String, Object> map = new HashMap<>();
-				ItemStack item = (ItemStack) object;
+				Map<String, Object> map = ItemMaker.of((ItemStack) object).serializeToMap();
 				map.put("classType", "ItemStack");
-				try {
-					map.put("type", XMaterial.matchXMaterial(item.getType()).name());
-				} catch (IllegalArgumentException err) {
-					map.put("type", item.getType().name()); // Modded item
-				}
-				map.put("amount", item.getAmount());
-				if (item.hasItemMeta()) {
-					ItemMeta meta = item.getItemMeta();
-					if (meta instanceof Damageable)
-						if (((Damageable) meta).getDamage() != 0)
-							map.put("durability", ((Damageable) meta).getDamage());
-					if (!meta.getEnchants().isEmpty())
-						map.put("enchants", writeEnchants(meta.getEnchants()));
-					if (meta.hasDisplayName())
-						map.put("meta.displayName", meta.getDisplayName());
-					if (meta.hasLore())
-						map.put("meta.lore", meta.getLore());
-					if (Ref.isNewerThan(7))
-						if (!meta.getItemFlags().isEmpty())
-							map.put("meta.itemFlags", writeItemFlags(meta.getItemFlags()));
-					if (Ref.isNewerThan(13))
-						if (meta.hasCustomModelData())
-							map.put("meta.customModelData", meta.getCustomModelData());
-
-					NBTEdit nbt = new NBTEdit(item);
-					// remove unused tags
-					nbt.remove("id");
-					nbt.remove("Count");
-					nbt.remove("lvl");
-					nbt.remove("display");
-					nbt.remove("Name");
-					nbt.remove("Lore");
-					nbt.remove("Damage");
-					nbt.remove("HideFlags");
-					nbt.remove("Enchantments");
-					nbt.remove("CustomModelData");
-					nbt.remove("ench");
-					if (!nbt.getKeys().isEmpty())
-						map.put("meta.nbt", String.valueOf(nbt.getNBT())); // save clear nbt
-				}
 				return map;
-			}
-
-			private Set<String> writeItemFlags(Set<?> itemFlags) {
-				Set<String> set = new HashSet<>();
-				for (Object flag : itemFlags)
-					set.add(((ItemFlag) flag).name());
-				return set;
-			}
-
-			private Map<String, Integer> writeEnchants(Map<Enchantment, Integer> enchantments) {
-				Map<String, Integer> saved = new HashMap<>();
-				for (Entry<Enchantment, Integer> enchant : enchantments.entrySet())
-					saved.put(enchant.getKey().getName(), enchant.getValue());
-				return saved;
 			}
 
 			@Override
@@ -645,44 +580,37 @@ public class BukkitLibInit {
 				return "ItemStack".equals(map.get("classType"));
 			}
 
-			@SuppressWarnings("unchecked")
 			@Override
 			public Object read(Map<String, Object> map) {
-				ItemMaker maker;
-				XMaterial material = XMaterial.matchXMaterial(map.get("type").toString().toUpperCase()).orElse(XMaterial.STONE);
-				if (material == XMaterial.STONE && !map.get("type").toString().toUpperCase().equals("STONE")) {
-					Material bukkitMaterial = Material.getMaterial(map.get("type").toString());
-					if (bukkitMaterial != null)
-						maker = ItemMaker.of(bukkitMaterial);
-					else
-						maker = ItemMaker.of(material);
-				} else
-					maker = ItemMaker.of(material);
+				return ItemMaker.loadFromJson(map, false);
+			}
+		});
 
-				if (map.containsKey("amount"))
-					maker.amount(((Number) map.get("amount")).intValue());
-				if (map.containsKey("durability"))
-					maker.damage(((Number) map.get("durability")).intValue());
-				if (map.containsKey("meta.customModelData"))
-					maker.customModel(((Number) map.get("meta.customModelData")).intValue());
-				if (map.containsKey("meta.displayName"))
-					maker.displayName(map.get("meta.displayName").toString());
-				if (map.containsKey("meta.itemFlags") && map.get("meta.itemFlags") instanceof List)
-					maker.itemFlags((List<String>) map.get("meta.itemFlags"));
-				if (map.containsKey("meta.lore") && map.get("meta.lore") instanceof List)
-					maker.lore((List<String>) map.get("meta.lore"));
-				if (map.containsKey("enchants") && map.get("enchants") instanceof Map)
-					enchants(maker, (Map<Object, Object>) map.get("enchants"));
-				if (map.containsKey("meta.nbt"))
-					maker.nbt(new NBTEdit(map.get("meta.nbt").toString()));
-				return maker.build();
+		// ïtemmaker
+		Json.registerDataWriter(new DataWriter() {
+
+			@Override
+			public Map<String, Object> write(Object object) {
+				Map<String, Object> map = ItemMaker.of((ItemStack) object).serializeToMap();
+				map.put("classType", "ItemMaker");
+				return map;
 			}
 
-			private ItemMaker enchants(ItemMaker nbt, Map<Object, Object> map) {
-				for (Entry<Object, Object> enchant : map.entrySet())
-					if (enchant.getValue() instanceof Number)
-						nbt.enchant(EnchantmentAPI.byName(enchant.getKey().toString().toUpperCase()).getEnchantment(), ((Number) enchant.getValue()).intValue());
-				return nbt;
+			@Override
+			public boolean isAllowed(Object object) {
+				return object instanceof ItemMaker;
+			}
+		});
+		Json.registerDataReader(new DataReader() {
+
+			@Override
+			public boolean isAllowed(Map<String, Object> map) {
+				return "ItemMaker".equals(map.get("classType"));
+			}
+
+			@Override
+			public Object read(Map<String, Object> map) {
+				return ItemMaker.loadMakerFromJson(map, false);
 			}
 		});
 
