@@ -161,8 +161,8 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 		Class<?> close;
 		Class<?> click;
 		Class<?> itemname;
-		Field rpStatusField;
 		Field anvilText;
+		Field rpStatusField;
 		if (NO_OBFUSCATED_NMS_MODE) {
 			resource = Ref.nms("network.protocol.game", "ServerboundResourcePackPacket");
 			close = Ref.nms("network.protocol.game", "ServerboundContainerClosePacket");
@@ -240,8 +240,9 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 						return;
 					HolderGUI gui = BukkitLoader.this.gui.get(player.getUniqueId());
 					if (gui instanceof AnvilGUI) {
+						String text = (String) Ref.get(packet, anvilText);
 						BukkitLoader.nmsProvider.postToMainThread(() -> {
-							((AnvilGUI) gui).setRepairText(buildText(anvilText + ""));
+							((AnvilGUI) gui).setRepairText(buildText(text));
 						});
 						packetContainer.setCancelled(true);
 					}
