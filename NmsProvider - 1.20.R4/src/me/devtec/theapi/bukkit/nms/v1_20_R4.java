@@ -82,6 +82,7 @@ import net.minecraft.EnumChatFormat;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandDispatcher;
 import net.minecraft.core.BlockPosition;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.Particle;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.registries.VanillaRegistries;
@@ -149,6 +150,7 @@ import net.minecraft.world.inventory.Containers;
 import net.minecraft.world.inventory.InventoryClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.EnumGamemode;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.BlockFalling;
@@ -218,7 +220,13 @@ public class v1_20_R4 implements NmsProvider {
 
 	@Override
 	public Object getNBT(ItemStack itemStack) {
-		return ((net.minecraft.world.item.ItemStack) asNMSItem(itemStack)).a(CommandDispatcher.a(VanillaRegistries.a()));
+		net.minecraft.world.item.ItemStack item = (net.minecraft.world.item.ItemStack) asNMSItem(itemStack);
+		if (item.e())
+			return new NBTTagCompound();
+		CustomData data = item.a(DataComponents.b);
+		if (data != null)
+			return data.c();
+		return null;
 	}
 
 	@Override
@@ -236,14 +244,9 @@ public class v1_20_R4 implements NmsProvider {
 	public ItemStack setNBT(ItemStack stack, Object nbt) {
 		if (nbt instanceof NBTEdit)
 			nbt = ((NBTEdit) nbt).getNBT();
-		net.minecraft.world.item.ItemStack i = (net.minecraft.world.item.ItemStack) asNMSItem(stack);
-		NBTTagCompound nb = (NBTTagCompound) nbt;
-		if (!nb.e().contains("id"))
-			nb.a("id", BuiltInRegistries.h.b(i.g()).toString());
-		if (!nb.e().contains("count"))
-			nb.a("count", stack.getAmount());
-		i.restorePatch(net.minecraft.world.item.ItemStack.a(dispatcher, (NBTTagCompound) nbt).d());
-		return asBukkitItem(i);
+		net.minecraft.world.item.ItemStack item = (net.minecraft.world.item.ItemStack) asNMSItem(stack);
+		item.b(DataComponents.b, CustomData.a((NBTTagCompound) nbt));
+		return asBukkitItem(item);
 	}
 
 	@Override
