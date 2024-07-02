@@ -281,17 +281,17 @@ public class v1_21 implements NmsProvider {
 
 	@Override
 	public Object packetSpawnEntity(Object entity, int id) {
-		return new ClientboundAddEntityPacket((net.minecraft.world.entity.Entity) entity, id);
+		return new ClientboundAddEntityPacket((net.minecraft.world.entity.Entity) entity, id, ((net.minecraft.world.entity.Entity) entity).blockPosition());
 	}
 
 	@Override
 	public Object packetNamedEntitySpawn(Object player) {
-		return new ClientboundAddEntityPacket((net.minecraft.world.entity.player.Player) player);
+		return new ClientboundAddEntityPacket((net.minecraft.world.entity.player.Player) player, 0, ((net.minecraft.world.entity.Entity) player).blockPosition());
 	}
 
 	@Override
 	public Object packetSpawnEntityLiving(Object entityLiving) {
-		return new ClientboundAddEntityPacket((net.minecraft.world.entity.LivingEntity) entityLiving);
+		return new ClientboundAddEntityPacket((net.minecraft.world.entity.LivingEntity) entityLiving, 0, ((net.minecraft.world.entity.LivingEntity) entityLiving).blockPosition());
 	}
 
 	@Override
@@ -392,7 +392,7 @@ public class v1_21 implements NmsProvider {
 				try {
 					ComponentEntity compoundTag = (ComponentEntity) c.getHoverEvent().getValue();
 					net.minecraft.network.chat.Component component = compoundTag.getName() == null ? null : (net.minecraft.network.chat.Component) toIChatBaseComponent(compoundTag.getName());
-					EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(compoundTag.getType()));
+					EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(compoundTag.getType()));
 					modif = modif.withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_ENTITY,
 							new net.minecraft.network.chat.HoverEvent.EntityTooltipInfo(entityType, compoundTag.getId(), component)));
 				} catch (Exception commandSyntaxException) {
