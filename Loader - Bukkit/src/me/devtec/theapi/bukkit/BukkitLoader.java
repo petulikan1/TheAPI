@@ -31,6 +31,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.devtec.shared.API;
@@ -53,6 +54,7 @@ import me.devtec.theapi.bukkit.commands.hooker.LegacySimpleCommandMap;
 import me.devtec.theapi.bukkit.events.ServerListPingEvent;
 import me.devtec.theapi.bukkit.game.resourcepack.ResourcePackHandler;
 import me.devtec.theapi.bukkit.game.resourcepack.ResourcePackResult;
+import me.devtec.theapi.bukkit.game.worldgens.VoidGeneratorHelper;
 import me.devtec.theapi.bukkit.gui.AnvilGUI;
 import me.devtec.theapi.bukkit.gui.HolderGUI;
 import me.devtec.theapi.bukkit.nms.NmsProvider;
@@ -114,6 +116,13 @@ public class BukkitLoader extends JavaPlugin implements Listener {
 	 */
 	public static double getApiRelease() {
 		return release;
+	}
+
+	@Override
+	public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+		if (id == null || id.equalsIgnoreCase("void") || id.equalsIgnoreCase("voidgen"))
+			return VoidGeneratorHelper.get();
+		return null;
 	}
 
 	@Override
