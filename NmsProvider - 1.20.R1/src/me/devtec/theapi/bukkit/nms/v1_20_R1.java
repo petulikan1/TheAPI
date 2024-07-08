@@ -912,7 +912,7 @@ public class v1_20_R1 implements NmsProvider {
 		BukkitLoader.getPacketHandler().send(player, packetOpenWindow(id, legacy, size, title));
 		nmsPlayer.bR.transferTo((Container) container, (CraftPlayer) player);
 		nmsPlayer.bR = (Container) container;
-		nmsPlayer.a((Container) container);
+		postToMainThread(() -> nmsPlayer.a((Container) container));
 		((Container) container).checkReachable = false;
 	}
 
