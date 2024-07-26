@@ -1704,7 +1704,7 @@ public class v1_21 implements NmsProvider {
 
 	@Override
 	public String getProviderName() {
-		return "PaperMC 1.20.6";
+		return "PaperMC 1.21";
 	}
 
 	@Override
