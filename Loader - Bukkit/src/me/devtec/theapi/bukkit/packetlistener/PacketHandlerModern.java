@@ -361,10 +361,14 @@ public class PacketHandlerModern implements PacketHandler<Channel> {
 		if (!closed) {
 			closed = true;
 			for (Channel channel : channelLookup.values())
-				channel.eventLoop().execute(() -> {
-					if (channel.pipeline().names().contains("InjectorTA"))
-						channel.pipeline().remove("InjectorTA");
-				});
+				try {
+					channel.eventLoop().execute(() -> {
+						if (channel.pipeline().names().contains("InjectorTA"))
+							channel.pipeline().remove("InjectorTA");
+					});
+				} catch (IllegalStateException e) {
+
+				}
 			channelLookup.clear();
 			unregisterChannelHandler();
 		}
